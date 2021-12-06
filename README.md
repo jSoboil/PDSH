@@ -1,6 +1,8 @@
 # Python Data Science Handbook:
 Repository for replicated code and exercises from Jake VanderPlas' 'Python Data Science Handbook'.
 
+---
+
 <img src="img/PDSH_cover.png" width="260" height="370" align="right" />
 
 # Book Overview:
@@ -21,3 +23,5 @@ With this handbook, you’ll learn how to use:
 - Scikit-Learn: for efficient and clean Python implementations of the most important and established machine learning algorithms
 
 You can find the website [here](https://jakevdp.github.io/PythonDataScienceHandbook/) or, alternatively, you can buy the book on [Amazon](https://www.amazon.com/Python-Data-Science-Handbook-Essential/dp/1491912057)!
+
+---
