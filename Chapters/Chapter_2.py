@@ -258,16 +258,47 @@ plt.show() # Note: in Rstudio, you need to call plt.show() to make plot appear
 # sizes.
 
 ##### Introducing Broadcasting
+# Recall that for arrays of the same size, binary operations are performed on an
+# element-by-element basis. Broadcasting allows these types of binary operations
+# to be performed on arrays of different sizes — for example, we can just as 
+# easily add a scalar (think of it as a zero - dimensional array) to an array.
+a = np.array([0, 1, 2])
+a + 5
 
+# We can similarly extend this to arrays of higher dimension. Observe the result
+# when we add a one-dimensional array to a two-dimensional array, below.
+M = np.ones((3, 3))
+M + a
 
+#### Rules of Broadcasting
 
+# Rule 1: If the two arrays differ in their number of dimensions, the shape of 
+# the one with fewer dimensions is padded with ones on its leading (left) side.
 
+# Rule 2: If the shape of the two arrays does not match in any dimension, the 
+# array with shape equal to 1 in that dimension is stretched to match the other 
+# shape.
 
+# Rule 3: If in any dimension the sizes disagree and neither is equal to 1, an 
+# error is raised.  
 
+##### Broadcasting example 1
+# Let’s look at adding a two-dimensional array to a one-dimensional array, below.
+M = np.ones((2, 3))
+a =np.arange(3)
+# Let’s consider an operation on these two arrays. The shapes of the arrays are
+M.shape = (2, 3)
+a.shape = (3, )
+# We see by rule 1 that the array a has fewer dimensions, so we pad it on the
+# left with one
+# M.shape -> (2, 3)
+# a.shape -> (1, 3)
+# By rule 2, we now see that the first dimension disagrees, so we stretch this 
+# dimension to match:
+# M.shape -> (2, 3)
+# a.shape -> (2, 3)
 
+# The shapes match, and we see that the final shape will be (2, 3):
+M + a
 
-
-
-
-
-
+##### Broadcasting example 2
