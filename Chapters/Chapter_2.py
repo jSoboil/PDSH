@@ -21,7 +21,7 @@ A = array.array('i', L)
 A
 # Here 'i' is a type code indicating the contents are integers.
 
-# Much more useful, however, is the ndarray object of the NumPy package. While 
+# But much more useful is the ndarray object of the NumPy package. While 
 # Python’s array object provides efficient storage of array-based data, NumPy 
 # adds to this efficient operations on that data. We explore these operations in
 # later sections; here we demonstrate several ways of creating a NumPy array.
