@@ -152,7 +152,7 @@ x = [1, 2, 3, 99, 99, 3, 2, 1]
 x_1, x_2, x_3 = np.split(x, [3, 5])
 print(x_1, x_2, x_3)
 
-#### Computation on NumPy Arrays: Universal Functions
+#### Computation on NumPy Arrays - Universal Functions
 ##### The Slowness of Loops
 # The relative sluggishness of Python generally manifests itself in situations
 # where many small operations are being repeated — for instance, looping over 
@@ -216,8 +216,8 @@ print("-x ", -x)
 print("x ** 2", x ** 2)
 print("x % 2", x % 2)
 
-#### Aggregations: Min, Max, and Everything in Between
-##### Example: What Is the Average Height of US Presidents?
+#### Aggregations - Min, Max, and Everything in Between
+##### Example - What Is the Average Height of US Presidents?
 # Aggregates available in NumPy can be extremely useful for summarizing a set of
 # values. As a simple example, let’s consider the heights of all US presidents. 
 # This data is available in the file president_heights.csv, which is a simple 
@@ -251,7 +251,7 @@ plt.xlabel("height(cm)")
 plt.ylabel("number")
 plt.show() # Note: in Rstudio, you need to call plt.show() to make plot appear
 
-#### Computation on Arrays: Broadcasting
+#### Computation on Arrays - Broadcasting
 # Another means of vectorising operations is to use NumPy’s broadcasting 
 # functionality. Broadcasting is simply a set of rules for applying binary 
 # ufuncs (addition, subtraction, multiplication, etc.) on arrays of different 
@@ -302,3 +302,146 @@ a.shape = (3, )
 M + a
 
 ##### Broadcasting example 2
+# Let’s take a look at an example where both arrays need to be broadcast.
+a = np.arange(3).reshape((3, 1))
+b = np.arange(3)
+# Rule 1 says we must pad the shape of b with ones...
+# a.shape -> (3, 1)
+# b.shape -> (1, 3)
+# And rule 2 tells us that we upgrade each of these ones to match the 
+# corresponding size of the other array.
+# a.shape -> (3, 3)
+# b.shape -> (3, 3)
+
+# Because the result matches, these shapes are compatible. We can see this below.
+a + b
+
+##### Broadcasting example 3
+# Now let’s take a look at an example in which the two arrays are not compatible.
+M = np.ones((3, 2))
+a = np.arange(3)
+
+# This is just a slightly different situation than in the first example - the 
+# matrix M is transposed. How does this affect the calculation? The shapes of 
+# the arrays are...
+M.shape 
+a.shape
+# Again, rule 1 tells us that we must pad the shape of a with ones.
+# M.shape -> (3, 2)
+# a.shape -> (1, 3)
+# By rule 2, the first dimension of a is stretched to match that of M.
+# M.shape -> (3, 2)
+# a.shape -> (3, 3)
+# Now we hit rule 3—the final shapes do not match, so these two arrays are 
+# incompatible, as we can observe by attempting this operation.
+M + a
+
+# If right-side padding is what you’d like, you can do this explicitly by 
+# reshaping the array.
+a[:, np.newaxis].shape
+M + a[:, np.newaxis]
+
+# Also note that while we’ve been focusing on the + operator here, these 
+# broadcasting rules apply to any binary ufunc. For example, here is the 
+# logaddexp(a, b) function, which computes log(exp(a) + exp(b)) with more 
+# precision than the naive approach.
+np.logaddexp(M, a[:, np.newaxis])
+
+#### Broadcasting in Practice
+##### Centering an array
+# We saw that ufuncs allow a NumPy user to remove the need to explicitly write 
+# slow Python loops. Broadcasting extends this ability. One commonly seen 
+# example is centering an array of data. Imagine you have an array of 10 
+# observations, each of which consists of 3 values. Using the standard 
+# convention, we’ll store this in a 10×3 array.
+X = np.random.random((10, 3))
+# We can compute the mean of each feature using the mean aggregate across the 
+# first dimension.
+X_mean = X.mean(0)
+X_mean
+
+# Now, we can center the X array by subtracting the mean (this is a broadcasting 
+# operation).
+X_centred = X - X_mean
+# To double-check that we’ve done this correctly, we can check that the centered 
+# array has near zero mean.
+X_centred.mean(0)
+# To within-machine precision, the mean is now zero.
+
+###### Plotting a two-dimensional function
+# One place that broadcasting is very useful is in displaying images based on 
+# two- dimensional functions. If we want to define a function z = f(x, y), 
+# broadcasting can be used to compute the function across the grid.
+x = np.linspace(0, 5, 50) # x has 50 steps from 0 to 5
+y = np.linspace(0, 5, 50) # y has 50 steps from 0 to 5
+# Write func...
+z = np.sin(x) ** 10 + np.cos(10 + y * x) * np.cos(x)
+# We’ll use Matplotlib to plot this two-dimensional array.
+plt.clf()
+plt.imshow(z, origin = "lower", extent = [0, 5, 0, 5], cmap = "viridis")
+plt.show()
+
+#### Comparisons, Masks, and Boolean Logic
+##### Example: Counting Rainy Days
+# Imagine you have a series of data that represents the amount of precipitation
+# each day for a year in a given city. For example, here we’ll load the daily 
+# rainfall statistics for the city of Seattle in 2014, using Pandas.
+import pandas as pd
+# Use Pandas to extract rainfall inches as a NumPy array.
+rainfall = pd.read_csv("data/Seattle2014.csv")['PRCP'].values
+inches = rainfall / 254 # 1/10mm -> inches
+inches.shape
+# The array contains 365 values, giving daily rainfall in inches from January 1
+# to December 31, 2014.
+
+# As a first quick visualization, let’s look at the histogram of rainy days.
+plt.clf()
+plt.hist(inches, 40)
+plt.show()
+# This doesn’t do a good job of conveying some information we’d like to see: for
+# example, how many rainy days were there in the year? What is the average 
+# precipitation on those rainy days? How many days were there with more than 
+# half an inch of rain?
+
+##### Comparison Operators as ufuncs
+# Using +, -, *, /, and others on arrays leads to element-wise operations. NumPy
+# also implements comparison operators such as < (less than) and > (greater than)
+# as element-wise ufuncs. The result of these comparison operators is always an
+# array with a Boolean data type. All six of the standard comparison operations
+# are available. For example
+x = np.array([1, 2, 3, 4, 5])
+x < 3
+x > 3
+x <= 3
+x >= 3
+x != 3
+x == 3
+
+# It is also possible to do an element-by-element comparison of two arrays, and 
+# to include compound expressions.
+(2 * x) == (x ** 2)
+# As in the case of arithmetic operators, the comparison operators are 
+# implemented as ufuncs in NumPy; for example, when you write x < 3, internally
+# NumPy uses np.less(x, 3).
+
+#### Working with Boolean Arrays
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
