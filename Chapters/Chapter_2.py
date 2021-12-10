@@ -425,23 +425,75 @@ x == 3
 # NumPy uses np.less(x, 3).
 
 #### Working with Boolean Arrays
+# Given a Boolean array, there are a host of useful operations you can do.
+rng = np.random.RandomState(0)
+x = rng.randint(10, size=(3, 4))
+x
 
+##### Counting entries
+np.count_nonzero(x < 6) # how many values less than 6?
+# We see that there are eight array entries that are less than 6. Another way
+# to get at this information is to use np.sum; in this case, False is 
+# interpreted as 0, and True is interpreted as 1.
+np.sum(x < 6)
+# The benefit of sum() is that like with other NumPy aggregation functions, this 
+# summation can be done along rows or columns too.
+np.sum(x < 6, axis = 1)
+# This counts the number of values less than 6 in each row of the matrix.
 
+# If we’re interested in quickly checking whether any or all the values are true,
+# we can use np.any() or np.all().
+np.any(x > 8)
+np.any(x < 0)
+np.any(x < 8, axis = 1)
+np.all(x < 8, axis = 1)
 
+##### Boolean operators
+# What if we want to know about all days with rain less than four inches and 
+# greater than one inch? This is accomplished through Python’s bitwise logic 
+# operators, &, |, ^, and ~.
 
+# For example, we can address this sort of compound question as follows.
+np.sum((inches > 0.5) & (inches < 1))
+# Note that the parentheses here are important—because of operator precedence 
+# rules, with parentheses removed this expression would be evaluated as follows, 
+# which results in an error.
 
+# Using the equivalence of A AND B and NOT (A OR B), we can compute the same 
+# result in a different manner.
+np.sum(~((inches <= 0.5) | (inches >= 1)))
 
+# Using these tools, we might start to answer the types of questions we have 
+# about our weather data. Here are some examples of results we can compute when
+# combining masking with aggregations.
+print("Number of days without rain: ", np.sum(inches == 0))
+print("Number of days with rain: ", np.sum(inches != 0))
+print("Days with more than 0.5 inches of rain: ", np.sum(inches > 0.5))
+print("Rainy days with < 0.1 inches: ", np.sum((inches > 0) & (inches < 0.2)))
 
+#### Boolean Arrays as Masks
+# A more powerful pattern is to use Boolean arrays as masks, to select particular
+# subsets of the data themselves. Returning to our x array from before, suppose
+# we want an array of all values in the array that are less than, say, 5. Simple,
+# indexing like in R...
+x[x < 5]
+# What is returned is a one-dimensional array filled with all the values that 
+# meet this condition; in other words, all the values in positions at which the
+# mask array is True.
 
+# We are then free to operate on these values as we wish. For example, we can 
+# compute some relevant statistics on our Seattle rain data.
+rainy = (inches > 0) # create indexing mask
+# Then construct an index mask of all summer days (June 21st is the 172nd day).
+summer = (np.arange(365) - 172 > 90) & (np.arange(365) - 172 > 0)
+# Display data
+print("Median precip on rainy days in 2014 (inches): ", np.median(inches[rainy]))
+print("Median precip on summer days in 2014 (inches): ", np.median(inches[summer]))
+print("Maximum precip on summer days in 2014 (inches): ", np.max(inches[summer]))
+print("Maximum precip on non-summer days in 2014 (inches): ", np.median(inches[rainy & ~summer]))
+# By combining Boolean operations, masking operations, and aggregates, we can 
+# very quickly answer these sorts of questions for our dataset.
 
+# Left the rest out as very similar to R with minor variations.
 
-
-
-
-
-
-
-
-
-
-
+#### End file
