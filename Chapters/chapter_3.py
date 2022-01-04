@@ -142,7 +142,8 @@ sns.set()
 births.pivot_table("births", index = "year", columns = "gender", aggfunc = "sum").plot()
 plt.ylabel("Total births per year")
 plt.show()
-plt.clf()
+plt.clf() # render plot for Rstudio
+plt.clf() # clear settings
 # With a simple pivot table and plot() method, we can immediately see the annual
 # trend in births by gender. By eye, it appears that over the past 50 years male
 # births have outnumbered female births by around 5%.
@@ -172,7 +173,8 @@ import matplotlib as mpl
 births.pivot_table("births", index = "dayofweek", columns = "decade", aggfunc = "mean").plot()
 plt.gca().set_xticklabels(["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"])
 plt.ylabel("mean births by day")
-plt.show()
+plt.show() # render plot for Rstudio
+plt.clf() # clear settings
 # According to the data we have here, births are slightly less common on weekends
 # than on weekdays! Note that the 1990s and 2000s are missing because the CDC
 # data contains only the month of birth starting in 1989.
@@ -185,19 +187,26 @@ births_by_date.head()
 # plottable, let’s turn these months and days into a date by associating them 
 # with a dummy year variable (making sure to choose a leap year so February 29th
 # is correctly handled!).
+import datetime as dt
+births_by_date.index =  [dt.datetime(2012, month, day) for (month, day) in births_by_date.index]
+births_by_date.head()
 
+# Focusing on the month and day only, we now have a time series reflecting the 
+# average number of births by date of the year. From this, we can use the plot 
+# method to plot the data. It reveals some interesting trends...
+plt.clf()
+fig, ax = plt.subplots(figsize = (12, 4))
+births_by_date.plot(ax = ax)
+plt.show() # render plot for Rstudio
+plt.clf() # clear settings
 
+#### Vectorized String Operations
+# One strength of Python is its relative ease in handling and manipulating 
+# string data. Pandas builds on this and provides a comprehensive set of 
+# vectorized string operations that become an essential piece of the type of 
+# munging required when one is working with (read: cleaning up) real-world data.
 
-
-
-
-
-
-
-
-
-
-
+##### Introducing Pandas String Operations
 
 
 
