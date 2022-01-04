@@ -206,9 +206,58 @@ plt.clf() # clear settings
 # vectorized string operations that become an essential piece of the type of 
 # munging required when one is working with (read: cleaning up) real-world data.
 
-##### Introducing Pandas String Operations
+# Vectorization of operations simplifies the syntax of operating on arrays of 
+# data: we no longer have to worry about the size or shape of the array, but 
+# just about what operation we want done.
 
+##### Example: Visualizing Seattle Bicycle Counts
+# As a more involved example of working with some time series data, let’s take a
+# look at bicycle counts on Seattle’s Fremont Bridge. This data comes from an 
+# automated bicycle counter, installed in late 2012, which has inductive sensors
+# on the east and west sidewalks of the bridge.
+data = pd.read_csv("data/Fremont_Bridge_Bicycle_Counter.csv", index_col = "Date", parse_dates = True)
+data.head()
+# For convenience, we’ll further process this dataset by shortening the column 
+# names and adding a “Total” column.
+data.columns = ["Total", "East", "West"]
+data.columns
+data.dropna().describe()
 
+###### Visualizing the data
+# We can gain some insight into the dataset by visualizing it. Let’s start by 
+# plotting the raw data.
+plt.clf()
+sns.set()
+data.plot()
+plt.ylabel("Hourly Bicycle Count")
+plt.show()
 
+# The ~25,000 hourly samples are far too dense for us to make much sense of. We 
+# can gain more insight by resampling the data to a coarser grid. Let’s resample 
+# by week.
+plt.clf()
+weekly = data.resample("W").sum()
+weekly.plot(style = [":", "--", "-"])
+plt.ylabel("Weekly Bicycle Count")
+plt.show()
+# This shows us some interesting seasonal trends, with an increase in the summer 
+# Note: Northern Hemipshere.
 
+# Another way that comes in handy for aggregating the data is to use a rolling 
+# mean, utilizing the pd.rolling_mean() function. We’ll do a 30-day rolling mean 
+# of our data, making sure to center the window.
+daily = data.resample("D").sum()
+daily.rolling(30, center = True).sum().plot(style = [":", "--", "-"])
+# .plot is the line style or 'lines' in R.
+plt.ylabel("Mean hourly count");
+plt.show()
+plt.clf()
+# The jaggedness of the result is due to the hard cutoff of the window. We can 
+# get a smoother version of a rolling mean using a window function — for example, 
+# a Gaussian window. The following code specifies both the width of the window 
+# (50 days) and the width of the Gaussian within the window (10 days).
+daily.rolling(50, center = True, win_type = "gaussian").sum(std = 10).plot(style = [":", "--", "-"])
+plt.show()
+plt.clf()
 
+###### Digging into the data
