@@ -119,4 +119,87 @@ density.tail()
 
 ##### Aggregation and Grouping
 ###### Example: Birthrate Data
+# Let’s take a look at the freely available data on births in the United States, 
+# provided by the Centers for Disease Control (CDC).
+births = pd.read_csv("data/births.csv")
+# Taking a look at the data, we see that it’s relatively simple—it contains the number of
+# births grouped by date and gender.
+births.head()
+
+# We can start to understand this data a bit more by using a pivot table. Let’s 
+# add a decade column, and take a look at male and female births as a function 
+# of decade.
+births["decade"] = 10 * (births["year"] // 10)
+births.pivot_table("births", index = "decade", columns = "gender", aggfunc = "sum")
+
+# We immediately see that male births outnumber female births in every decade. 
+# To see this trend a bit more clearly, we can use the built-in plotting tools 
+# in Pandas to visual‐ ize the total number of births by year.
+plt.clf()
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
+births.pivot_table("births", index = "year", columns = "gender", aggfunc = "sum").plot()
+plt.ylabel("Total births per year")
+plt.show()
+plt.clf()
+# With a simple pivot table and plot() method, we can immediately see the annual
+# trend in births by gender. By eye, it appears that over the past 50 years male
+# births have outnumbered female births by around 5%.
+
+###### Further data exploration
+# There are a few more interest‐ ing features we can pull out of this dataset 
+# using the Pandas tools covered up to this point. We must start by cleaning the 
+# data a bit, removing outliers caused by mistyped dates (e.g., June 31st) or 
+# missing values (e.g., June 99th). One easy way to remove these all at once is 
+# to cut outliers; we’ll do this via a robust sigma-clipping operation.
+quartiles = np.percentile(births["births"], [25, 50, 75])
+mu = quartiles[1]
+sig = 0.74 * (quartiles[2] - quartiles[0])
+# With this we can use the query() method to filter out rows with births outside
+# these values.
+births = births.query("(births > @mu - 5 * @sig) & (births < @mu + 5 * @sig)")
+# Next we set the day column to integers; previously it had been a string 
+# because some columns in the dataset contained the value 'null'.
+births["day"] = births["day"].astype(int)
+births["day"].dtype
+# Finally, we can combine the day, month, and year to create a Date index. This 
+# allows us to quickly compute the weekday corresponding to each row.
+births.index = pd.to_datetime(10000 * births.year + 100 * births.month + births.day, format = "%Y%m%d")
+births["dayofweek"] = births.index.dayofweek
+# Using this we can plot births by weekday for several decades
+import matplotlib as mpl
+births.pivot_table("births", index = "dayofweek", columns = "decade", aggfunc = "mean").plot()
+plt.gca().set_xticklabels(["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"])
+plt.ylabel("mean births by day")
+plt.show()
+# According to the data we have here, births are slightly less common on weekends
+# than on weekdays! Note that the 1990s and 2000s are missing because the CDC
+# data contains only the month of birth starting in 1989.
+
+# Another interesting view is to plot the mean number of births by the day of the
+# year. Let’s first group the data by month and day separately.
+births_by_date = births.pivot_table("births", [births.index.month, births.index.day])
+births_by_date.head()
+# The result is a multi-index over months and days. To make this easily 
+# plottable, let’s turn these months and days into a date by associating them 
+# with a dummy year variable (making sure to choose a leap year so February 29th
+# is correctly handled!).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
