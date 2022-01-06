@@ -135,8 +135,8 @@ births.pivot_table("births", index = "decade", columns = "gender", aggfunc = "su
 # We immediately see that male births outnumber female births in every decade. 
 # To see this trend a bit more clearly, we can use the built-in plotting tools 
 # in Pandas to visual‐ ize the total number of births by year.
-plt.clf()
 import matplotlib.pyplot as plt
+plt.clf()
 import seaborn as sns
 sns.set()
 births.pivot_table("births", index = "year", columns = "gender", aggfunc = "sum").plot()
@@ -261,3 +261,64 @@ plt.show()
 plt.clf()
 
 ###### Digging into the data
+# While the smoothed data are useful to get an idea of the general trend in the 
+# data, they hide much of the interesting structure. For example, we might want 
+# to look at the average traffic as a function of the time of day. We can do 
+# this using the GroupBy functionality.
+by_time = data.groupby(data.index.time).mean()
+hourly_ticks = 4 * 60 * 60 * np.arange(6)
+by_time.plot(xticks = hourly_ticks, style = [":", "--", "-"]);
+plt.show()
+# The hourly traffic is a strongly bimodal distribution, with peaks around 8:00
+# in the morning and 5:00 in the evening. This is likely evidence of a strong 
+# component of commuter traffic crossing the bridge. This shows a strong 
+# distinction between weekday and weekend totals, with around twice as many 
+# average riders crossing the bridge on Monday through Friday than on Saturday 
+# and Sunday.
+
+# With this in mind, let’s do a compound groupby and look at the hourly trend on 
+# weekdays versus weekends. We’ll start by grouping by both a flag marking the 
+# week‐ end, and the time of day.
+weekend = np.where(data.index.weekday < 5, "Weekday", "Weekend")
+by_time = data.groupby([weekend, data.index.time]).mean()
+# Now we’ll use some of the Matplotlib tools.
+fig, ax = plt.subplots(1, 2, figsize = (14, 5))
+by_time.loc["Weekday"].plot(ax = ax[0], title = "Weekdays", xticks = hourly_ticks, style = [":", "--", "-"])
+by_time.loc["Weekend"].plot(ax = ax[1], title = "Weekends", xticks = hourly_ticks, style = [":", "--", "-"])
+plt.show()
+# The result is very interesting: we see a bimodal commute pattern during the 
+# work week, and a unimodal recreational pattern during the weekends.
+
+#### High-Performance Pandas: eval() and query()
+# Pandas includes some experimental tools that allow you to directly access 
+# C-speed operations without costly allocation of intermediate arrays. These 
+# are the eval() and query() functions, which rely on the Numexpr package.
+
+##### Motivating query() and eval(): Compound Expressions
+# The Numexpr library gives you the ability to compute compound expressions 
+# element by element, without the need to allocate full intermediate arrays. 
+# The library accepts a string giving the NumPy-style expression you’d like to 
+# compute.
+import numpy as np
+rng = np.random.RandomState(42)
+x = rng.rand(10000)
+y = rng.rand(10000)
+mask = (x > 0.5) & (y < 0.5)
+import numexpr as nm
+mask_numexpr = nm.evaluate("(x > 0.5) & (y < 0.5)")
+np.allclose(mask, mask)
+
+###### pandas.eval() for Efficient Operations
+# The eval() function in Pandas uses string expressions to efficiently compute 
+# operations using DataFrames. For example, consider the following DataFrames.
+nrows, ncols = 100000, 100 
+rng = np.random.RandomState(42)
+df_1, df_2, df_3, df_4 = (pd.DataFrame(rng.rand(nrows, ncols)) for i in range(4))
+# To compute the sum of all four DataFrames using the typical Pandas approach, 
+# we can just write the sum...
+import timeit
+timeit df_1 + df_2 + df_3 + df_4
+# the eval() equivalent is about 50% faster...
+pd.eval('df_1 + df_2 + df_3 + df_4')
+
+#### End file
