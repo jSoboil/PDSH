@@ -1,10 +1,9 @@
 ## Visualization with Matplotlib
-### Simple Scatter Plots
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
 import numpy as np
 
-# 1st example...
+### 1st example...
 plt.clf()
 x = np.linspace(0, 10, 30)
 y = np.sin(x)
@@ -146,19 +145,96 @@ plt.plot(x, x + 3, linestyle = "dotted")
 plt.show()
 
 ### Adjusting the Plot: Axes Limits
+# Similar to R, the most basic way to adjust axis limits is to use the 
+# plt.xlim() and plt.ylim() methods.
+plt.clf()
+plt.plot(x, np.sin(x))
+plt.xlim(-1, 11)
+plt.ylim(-1.5, 1.5)
+plt.show()
+# If you’d like either axis to be displayed in reverse, you can simply reverse
+# the order of the arguments
+plt.clf()
+plt.plot(x, np.sin(x))
+plt.xlim(10, 0)
+plt.ylim(1.2, -1.2)
+plt.show()
 
+# A useful related method is plt.axis() (note here the potential confusion 
+# between axes with an e, and axis with an i). The plt.axis() method allows you 
+# to set the x and y limits with a single call, by passing a list that specifies 
+# [xmin, xmax, ymin, ymax].
+plt.clf()
+plt.plot(x, np.sin(x))
+# I find this method preferable...
+plt.axis([-1, 11, -1.5, 1.5]);
+plt.show()
+# The plt.axis() method goes even beyond this, allowing you to do things like 
+# automatically tighten the bounds around the current plot.
+plt.clf()
+plt.plot(x, np.sin(x))
+plt.axis("tight")
+plt.show()
+# It also allows even higher-level specifications, such as ensuring an equal 
+# aspect ratio so that on your screen, one unit in x is equal to one unit in y.
+plt.clf()
+plt.plot(x, np.sin(x))
+plt.axis('equal');
+plt.show()
 
+### Labeling Plots
+# Titles and axis labels are the simplest such labels—there are methods that can
+# be used to quickly set them.
+plt.clf()
+plt.plot(x, np.sin(x))
+plt.title("A Sine Curve")
+# Very similar to tidyverse ggplot, but instead of a pipe it's like base R...
+plt.xlabel("x")
+plt.ylabel("sin(x)")
+plt.show()
+# You can adjust the position, size, and style of these labels using optional 
+# arguments to the function.
 
+# When multiple lines are being shown within a single axes, it can be useful to 
+# create a plot legend that labels each line type. It is done via the 
+# plt.legend() method. Though there are several valid ways of using this, but 
+# this is probably the easiest.
+plt.clf()
+plt.plot(x, np.sin(x), "-g", label = "sin(x)")
+plt.plot(x, np.cos(x), ":b", label = "cos(x)")
+plt.axis("tight")
+plt.legend(fontsize = 6, loc = 3);
+plt.show()
 
+### Simple Scatter Plots
+# The primary difference of plt.scatter from plt.plot is that it can be used to 
+# create scatter plots where the properties of each individual point (size, face 
+# color, edge color, etc.) can be individually controlled or mapped to data.
 
+# Let’s show this by creating a random scatter plot with points of many colors 
+# and sizes.
+rng = np.random.RandomState(0)
+x = rng.randn(100)
+y = rng.randn(100)
+colours = rng.rand(100)
+sizes = 1000 * rng.rand(100)
 
+plt.clf()
+plt.scatter(x, y, c = colours, s = sizes, alpha = 0.3, cmap = "viridis")
+plt.colorbar(); #show colour scale
+plt.show()
 
+# For a better example, we can use the Iris data from Scikit-Learn.
+from sklearn.datasets import load_iris
+iris = load_iris()
+features = iris.data.T
+# Plot...
+plt.clf()
+plt.scatter(features[0], features[1], alpha = 0.2, s = 100 * features[3], c = iris.target, cmap = "viridis")
+plt.xlabel(iris.feature_names[0])
+plt.ylabel(iris.feature_names[1]);
+plt.show()
+plt.clf()
 
-
-
-
-
-
-
-
-
+### Basic Errorbars
+|> 
