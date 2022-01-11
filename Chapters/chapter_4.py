@@ -266,11 +266,11 @@ model = lambda x: x * np.sin(x)
 x_data = np.array([1, 3, 5, 6, 8])
 y_data = model(x_data)
 # Compute the Guassian process fit
-gp = GaussianProcessRegressor(random_state=100)
-gp.fit(x_data[:, np.newaxis], y_data)
+gp = GaussianProcessRegressor(random_state = 100)
+gp.fit(x_data[ : , np.newaxis], y_data)
 
 x_fit = np.linspace(0, 10, 1000)
-y_fit, MSE = gp.predict(x_fit[:, np.newaxis], return_std = True)
+y_fit, MSE = gp.predict(x_fit[ : , np.newaxis], return_std = True)
 dy_fit = 2 * np.sqrt(MSE) # 2 * sigma ~ 95% confidence region
 
 # We now have xfit, yfit, and dyfit, which sample the continuous fit to our 
@@ -284,3 +284,99 @@ plt.xlim(0, 10);
 plt.show()
 
 ### Density and Contour Plots
+#### Visualizing a Three-Dimensional Function
+# We’ll start by demonstrating a contour plot using a function z = f (x, y), 
+# using the following particular choice for f.
+def f(x, y): return np.sin(x) ** 10 + np.cos(10 + y * x) * np.cos(x)
+
+# A contour plot can be created with the plt.contour function. It takes three 
+# argu‐ ments: a grid of x values, a grid of y values, and a grid of z values. 
+# The x and y values represent positions on the plot, and the z values will be 
+# represented by the contour levels. Perhaps the most straightforward way to 
+# prepare such data is to use the np.meshgrid function, which builds 
+# two-dimensional grids from one-dimensional arrays.
+x = np.linspace(0, 5, 50)
+y = np.linspace(0, 5, 40)
+
+X, Y = np.meshgrid(x, y)
+Z = f(X, Y)
+# Now let’s look at this with a standard line-only contour plot
+plt.clf()
+plt.contour(X, Y, Z, colors = "black")
+plt.show()
+# Notice that by default when a single color is used, negative values are 
+# represented by dashed lines, and positive values by solid lines. 
+# Alternatively, you can color-code the lines by specifying a colormap with the 
+# cmap argument.
+plt.clf()
+plt.contour(X, Y, Z, 20, cmap = "RdGy")
+plt.show()
+# Our plot is looking nicer, but the spaces between the lines may be a bit 
+# distracting. We can change this by switching to a filled contour plot using 
+# the plt.contourf() function (notice the f at the end), which uses largely the 
+# same syntax as plt.con tour(). Additionally, we’ll add a plt.colorbar() 
+# command, which automatically creates an additional axis with labeled color 
+# information for the plot.
+plt.clf()
+plt.contour(X, Y, Z, 20, cmap = "RdGy");
+plt.colorbar();
+plt.show()
+# One potential issue with this plot is that it is a bit “splotchy.” That is, 
+# the color steps are discrete rather than continuous, which is not always what
+# is desired. o handle this is to use the plt.imshow() function, which 
+# interprets a two-dimensional grid of data as an image.
+plt.clf()
+plt.imshow(Z, extent = [0, 5, 0, 5], origin = "lower", cmap = "RdGy")
+plt.colorbar()
+plt.axis("scaled")
+plt.show()
+# Finally, it can sometimes be useful to combine contour plots and image plots.
+# We’ll use a partially transparent background image (with transparency set via
+# the alpha parameter) and over-plot contours with labels on the contours 
+# themselves (using the plt.clabel() function).
+plt.clf()
+contours = plt.contour(X, Y, Z, 3, colors = "black")
+plt.clabel(contours, inline = True, fontsize = 8)
+plt.imshow(Z, extent = [0, 5, 0, 5], origin = "lower", cmap = "RdGy")
+plt.colorbar()
+plt.show()
+
+### Histograms, Binnings, and Density
+# The hist() function has many options to tune both the calculation and the 
+# display; here’s an example of a more customized histogram.
+data = np.random.randn(1000)
+plt.clf()
+plt.hist(data, bins = 30, stacked = True, alpha = 0.5, histtype = "stepfilled", color = "steelblue", edgecolor = "none");
+plt.show()
+?plt.hist
+# As a further example of multi-plots...
+x_1 = np.random.normal(0, 0.8, 1000)
+x_2 = np.random.normal(-2, 1, 1000)
+x_3 = np.random.normal(3, 2, 1000)
+kwargs = dict(histtype = "stepfilled", alpha = 0.3, stacked = True, bins = 40)
+
+plt.clf()
+plt.hist(x_1, **kwargs)
+plt.hist(x_2, **kwargs)
+plt.hist(x_3, **kwargs)
+plt.show()
+
+### Two-Dimensional Histograms and Binnings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
