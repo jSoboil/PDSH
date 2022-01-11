@@ -236,5 +236,51 @@ plt.ylabel(iris.feature_names[1]);
 plt.show()
 plt.clf()
 
-### Basic Errorbars
-|> 
+### Visualizing Errors
+#### Basic Errorbars
+# A basic errorbar can be created with a single Matplotlib function call.
+plt.clf()
+plt.style.use("seaborn-whitegrid")
+x = np.linspace(0, 10, 50)
+dy = 0.8
+y = np.sin(x) + dy * np.random.randn(50)
+plt.errorbar(x, y, yerr = dy, fmt = ".k")
+plt.show()
+# In addition to these basic options, the errorbar function has many options to
+# fine-tune the outputs.
+plt.errorbar(x, y, yerr = dy, fmt = "o", color = "black", ecolor = "lightgray", elinewidth = 3, capsize = 0);
+plt.show()
+
+#### Continuous Errors
+# In some situations it is desirable to show errorbars on continuous quantities.
+# Though Matplotlib does not have a built-in convenience routine for this type 
+# of application, it’s relatively easy to combine primitives like plt.plot and 
+# plt.fill_between for a useful result.
+
+# Here we’ll perform a simple Gaussian process regression (GPR), using the 
+# Scikit-Learn API.
+from sklearn.gaussian_process import GaussianProcessRegressor
+
+# # define the model and draw some data
+model = lambda x: x * np.sin(x)
+x_data = np.array([1, 3, 5, 6, 8])
+y_data = model(x_data)
+# Compute the Guassian process fit
+gp = GaussianProcessRegressor(random_state=100)
+gp.fit(x_data[:, np.newaxis], y_data)
+
+x_fit = np.linspace(0, 10, 1000)
+y_fit, MSE = gp.predict(x_fit[:, np.newaxis], return_std = True)
+dy_fit = 2 * np.sqrt(MSE) # 2 * sigma ~ 95% confidence region
+
+# We now have xfit, yfit, and dyfit, which sample the continuous fit to our 
+# data. We can use the plt.fill_between function with a light color to 
+# visualize this continuous error.
+plt.clf()
+plt.plot(x_data, y_data, "or")
+plt.plot(x_fit, y_fit, "-", color = "gray")
+plt.fill_between(x_fit, y_fit - dy_fit, y_fit + dyfit, color = "gray", alpha = 0.2)
+plt.xlim(0, 10);
+plt.show()
+
+### Density and Contour Plots
