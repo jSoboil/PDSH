@@ -5,5 +5,6 @@ library(reticulate)
 use_virtualenv("env.")
 # Point reticulate to Python version of choice:
 Sys.setenv(RETICULATE_PYTHON = "env./bin/python3.9")
+reticulate::repl_python()
 
 # End file ----------------------------------------------------------------
