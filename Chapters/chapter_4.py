@@ -361,22 +361,6 @@ plt.hist(x_2, **kwargs)
 plt.hist(x_3, **kwargs)
 plt.show()
 
-### Two-Dimensional Histograms and Binnings
+# Tired of plots that I can learn on the fly... moving on to chapter 5.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# End file
