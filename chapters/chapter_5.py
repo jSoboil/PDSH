@@ -135,9 +135,16 @@ plt.show()
 # holdout set; that is, we hold back some subset of the data from the training 
 # of the model, and then use this holdout set to check the model performance. 
 # We can do this splitting using the train_test_split utility in Scikit-Learn.
-from sklearn.
+from sklearn.neighbors import KNeighborsClassifier
 model = KNeighborsClassifier(n_neighbors = 1)
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_iris
+
+# Load data
+iris = load_iris()
+X = iris.data
+y = iris.target
 
 # split the data with 50% in each set
 X_1, X_2, y_1, y_2 = train_test_split(X, y, random_state = 0, train_size = 0.5)
