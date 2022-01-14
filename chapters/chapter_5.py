@@ -137,7 +137,7 @@ plt.show()
 # We can do this splitting using the train_test_split utility in Scikit-Learn.
 from sklearn.neighbors import KNeighborsClassifier
 model = KNeighborsClassifier(n_neighbors = 1)
-from sklearn.metrics import accuracy_score
+
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_iris
 
@@ -154,6 +154,7 @@ model.fit(X_1, y_1)
 
 # evaluate the model on the second set of data
 y_2_model = model.predict(X_2)
+from sklearn.metrics import accuracy_score
 accuracy_score(y_2, y_2_model)
 
 ##### Model validation via cross-validation
@@ -194,4 +195,56 @@ scores
 # the error rate...
 scores.mean()
 
-#### Selecting the Best Model
+#### Validation in Practice - Grid Search
+# Scikit-Learn provides automated tools to find the par‐ ticular model that 
+# maximizes the validation score. Below is an example of using grid search to 
+# find the optimal polynomial model. We will explore a three-dimensional grid 
+# of model features — namely, the polynomial degree, the flag telling us 
+# whether to fit the intercept, and the flag telling us whether to normalise 
+# the problem. We can set this up using Scikit-Learn’s GridSearchCV 
+# meta-estimator.
+import numpy as np
+from sklearn.model_selection import GridSearchCV
+param_grid = {"polynomialfeatures__degree": np.arange(21),
+              "linearregression__fit_intercept": [True, False],
+              "linearregression__normalize": [True, False]}
+
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+
+def PolynomialRegression(degree = 2, **kwargs): 
+ return make_pipeline(PolynomialFeatures(degree), 
+LinearRegression(**kwargs))
+
+def make_data(N, err = 1.0, rseed = 1):
+ # randomly sample the data
+ rng = np.random.RandomState(rseed)
+ X = rng.rand(N, 1) ** 2
+ y = 10 - 1. / (X.ravel() + 0.1)
+ if err > 0:
+  y += err * rng.randn(N)
+ return X, y
+
+X, y = make_data(40)
+
+grid = GridSearchCV(PolynomialRegression(), param_grid, cv = 7)
+grid.fit(X, y)
+grid.best_params_
+
+# Finally, if we wish, we can use the best model and show the fit to our data 
+# using code from before...
+model = grid.best_estimator_
+
+# plot
+plt.clf()
+plt.scatter(X.ravel(), y)
+lim = plt.axis()
+X_test = np.linspace(-0.1, 1.1, 500)[:, None]
+y_test = model.fit(X, y).predict(X_test)
+plt.plot(X_test.ravel(), y_test);
+plt.axis(lim);
+plt.show()
+plt.clf()
+
+#### Feature Engineering
