@@ -125,3 +125,81 @@ for i, ax in enumerate(axes.flat):
 plt.show()
 
 ##### Hyperparameters and Model Validation
+###### Thinking About Model Validation
+# In principle, model validation is very simple: after choosing a model and its
+# hyper‐parameters, we can estimate how effective it is by applying it to some 
+# of the training data and comparing the prediction to the known value.
+
+######## Model validation the right way - Holdout sets
+# We can get a better sense of a model’s performance using what’s known as a 
+# holdout set; that is, we hold back some subset of the data from the training 
+# of the model, and then use this holdout set to check the model performance. 
+# We can do this splitting using the train_test_split utility in Scikit-Learn.
+from sklearn.neighbors import KNeighborsClassifier
+model = KNeighborsClassifier(n_neighbors = 1)
+from sklearn.model_selection import train_test_split
+
+# split the data with 50% in each set
+X_1, X_2, y_1, y_2 = train_test_split(X, y, random_state = 0, train_size = 0.5)
+
+# fit the model on one set of data
+model.fit(X_1, y_1)
+
+# evaluate the model on the second set of data
+y_2_model = model.predict(X_2)
+accuracy_score(y_2, y_2_model)
+
+##### Model validation via cross-validation
+# One disadvantage of using a holdout set for model validation is that we have 
+# lost a portion of our data to the model training. One way to address this is 
+# to use cross-validation — that is, to do a sequence of fits where each subset
+# of the data is used both as a training set and as a validation set.
+
+# Here we do two validation trials, alternately using each half of the data as a
+# holdout set. Using the split data from before, we could implement it like 
+# this
+y_2_model = model.fit(X_1, y_1).predict(X_2)
+y_1_model = model.fit(X_2, y_2).predict(X_1)
+accuracy_score(y_1, y_1_model), accuracy_score(y_2, y_2_model)
+# What comes out are two accuracy scores, which we could combine (by, say, 
+# taking the mean) to get a better measure of the global model performance. 
+# This particular form of cross-validation is a two-fold cross-validation—one 
+# in which we have split the data into two sets and used each in turn as a 
+# validation set. We could expand on this idea to use even more trials, and 
+# more folds in the data.
+
+# Here we split the data into five groups, and use each of them in turn to 
+# evaluate the model fit on the other 4/5 of the data. This would be rather 
+# tedious to do by hand, and so we can use Scikit-Learn’s cross_val_score 
+# convenience routine to do it succinctly.
+from sklearn.model_selection import cross_val_score
+cross_val_score(model, X, y, cv = 5)
+# Repeating the validation across different subsets of the data gives us an 
+# even better idea of the performance of the algorithm.
+
+# And classic LOOCV...
+from sklearn.model_selection import LeaveOneOut
+scores = cross_val_score(model, X, y, cv = LeaveOneOut())
+scores
+# Because we have 150 samples, the leave-one-out cross-validation yields scores 
+# for 150 trials, and the score indicates either successful (1.0) or 
+# unsuccessful (0.0) prediction. Taking the mean of these gives an estimate of 
+# the error rate...
+scores.mean()
+
+#### Selecting the Best Model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
