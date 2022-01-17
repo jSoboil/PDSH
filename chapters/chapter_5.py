@@ -248,3 +248,255 @@ plt.show()
 plt.clf()
 
 #### Feature Engineering
+# The previous sections outline the fundamental ideas of machine learning, but 
+# all of the examples assume that you have numerical data in a tidy, [n_samples, 
+# n_fea tures] format. In the real world, data rarely comes in such a form. 
+# With this in mind, one of the more important steps in using machine learning 
+# in practice is feature engi‐ neering—that is, taking whatever information you 
+# have about your problem and turning it into numbers that you can use to build
+# your feature matrix.
+
+##### Categorical Features
+# One common type of non-numerical data is categorical data. For example, 
+# imagine housing prices data, and along with numerical features like “price” 
+# and “rooms,” you also have “neighborhood” information. For example, your data 
+# might look something like this...
+data = [
+ {'price': 850000, 'rooms': 4, 'neighborhood': 'Queen Anne'},
+ {'price': 700000, 'rooms': 3, 'neighborhood': 'Fremont'},
+ {'price': 650000, 'rooms': 3, 'neighborhood': 'Wallingford'},
+ {'price': 600000, 'rooms': 2, 'neighborhood': 'Fremont'}
+ ]
+# ... and so you might be tempted to encode this data with a straightforward 
+# numerical mapping, such as
+# {'Queen Anne': 1, 'Fremont': 2, 'Wallingford': 3};
+
+# It turns out that this is not generally a useful approach in Scikit-Learn, as 
+# the package’s models make the fundamental assumption that numerical features 
+# reflect algebraic quantities.
+
+# In this case, one proven technique is to use one-hot (binary) encoding, which 
+# effectively creates extra columns indicating the presence or absence of a 
+# category with a value of 1 or 0, respectively. When your data comes as a list 
+# of dictionaries, Scikit-Learn’s DictVector izer will do this for you
+from sklearn.feature_extraction import DictVectorizer
+vec = DictVectorizer(sparse = False, dtype = int)
+vec.fit_transform(data)
+# The neighborhood column has been expanded into three separate columns, 
+# representing the three neighborhood labels, and that each row has a 1 in the 
+# column associated with its neighborhood. With these categorical features thus 
+# encoded, you can proceed as normal with fitting a Scikit-Learn model.
+
+# To see the meaning of each column, you can inspect the feature names...
+vec.get_feature_names_out()
+# However, there is a disadvantage of this approach, as it this can greatly 
+# increase the size of your dataset. Nevertheless, because the encoded data 
+# contains mostly zeros, a sparse output can be a very efficient solution...
+vec = DictVectorizer(sparse = True, dtype = int)
+vec.fit_transform(data) 
+
+##### Text Features
+# Another common need in feature engineering is to convert text to a set of 
+# representa‐ tive numerical values. For example, most automatic mining of 
+# social media data relies on some form of encoding the text as numbers. One of
+# the simplest methods of encoding data is by word counts - you take each 
+# snippet of text, count the occurrences of each word within it, and put the 
+# results in a table.
+
+# For example, consider the following set of three phrases
+sample = ["problem of evil",
+          "evil queen",
+          "horizon problem"]
+# For a vectorization of this data based on word count, we could construct a 
+# column representing the word “problem,” the word “evil,” the word “horizon,” 
+# and so on. While doing this by hand would be possible, we can avoid the 
+# tedium by using Scikit-Learn’s CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+vec = CountVectorizer()
+X = vec.fit_transform(sample)
+X
+# The result is a sparse matrix recording the number of times each word appears;
+# it is easier to inspect if we convert this to a DataFrame with labeled 
+# columns.
+import pandas as pd
+pd.DataFrame(X.toarray(), columns = vec.get_feature_names_out())
+# However, the raw word counts lead to features that put too much weight on 
+# words that appear very frequently, and this can be suboptimal in some 
+# classification algorithms. One approach to fix this is known as term 
+# frequency–inverse document frequency (TF–IDF), which weights the word counts 
+# by a measure of how often they appear in the documents. The syntax for 
+# computing these features is similar to the previous example
+from sklearn.feature_extraction.text import TfidfVectorizer
+vec = TfidfVectorizer()
+X = vec.fit_transform(sample)
+pd.DataFrame(X.toarray(), columns = vec.get_feature_names_out())
+
+##### Image Features
+# Another common need is to suitably encode images for machine learning 
+# analysis.
+
+##### Derived Features
+# Another useful type of feature is one that is mathematically derived from 
+# some input features. For example, one could convert a linear regression into 
+# a polynomial regression not by changing the model, but by transforming the 
+# input! This is sometimes known as basis function regression.
+
+# For example, this data clearly cannot be well described by a straight line
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([4, 2, 1, 3, 7])
+plt.clf()
+plt.scatter(x, y);
+plt.show()
+plt.clf()
+
+from sklearn.linear_model import LinearRegression
+X = x[:, np.newaxis]
+model = LinearRegression().fit(X = X, y = y)
+y_hat = model.predict(X)
+plt.scatter(x, y)
+plt.plot(X, y_hat)
+plt.show()
+
+# It’s clear that we need a more sophisticated model to describe the 
+# relationship between x and y. We can do this by transforming the data, adding
+# extra columns of features to drive more flexibility in the model. For example,
+# we can add polynomial features to the data this way
+from sklearn.preprocessing import PolynomialFeatures
+poly = PolynomialFeatures(degree = 3, include_bias = False)
+X_2 = poly.fit_transform(X)
+print(X_2)
+# The derived feature matrix has one column representing x, and a second column 
+# rep‐ resenting x^2, and a third column representing x^3. Computing a linear 
+# regression on this expanded input gives a much closer fit to our data
+model = LinearRegression().fit(X_2, y)
+y_hat = model.predict(X_2)
+
+plt.clf()
+plt.scatter(x, y)
+plt.plot(x, y_hat)
+plt.show()
+plt.clf()
+
+# Although the boomk emphasises the need for preprocessing of inputs, this is
+# very tricky as it leads to a change in interpretation of the results, 
+# sometimes making it nonsensical for real-world application...
+
+##### Imputation of Missing Data
+# Another common need in feature engineering is handling missing data. For 
+# example, we might have a dataset that looks like this...
+from numpy import nan
+X = np.array([[nan,0, 3],
+              [3, 7, 9], 
+              [3, 5, 2], 
+              [4, nan,6], 
+              [8, 8, 1]])
+y = np.array([14, 16, -1,  8, -5])
+# For a baseline imputation approach, using the mean, median, or most frequent 
+# value, Scikit-Learn provides the Imputer class.
+from sklearn.impute import SimpleImputer
+imputer = SimpleImputer(strategy = "mean")
+X_2 = imputer.fit_transform(X)
+X_2
+
+##### Feature Pipelines
+# This is quite cool... with any of the preceding examples, it can quickly 
+# become tedious to do the transformations by hand, especially if you wish to 
+# string together multiple steps. For example, we might want a processing 
+# pipeline that looks something like this
+
+# 1. Impute missing values using the mean
+# 2. Transform features to quadratic
+# 3. Fit a linear regression
+
+# To streamline this type of processing pipeline, Scikit-Learn provides a 
+# pipeline object, which can be used as follows.
+from sklearn.pipeline import make_pipeline
+model = make_pipeline(SimpleImputer(strategy = "mean"),
+                      PolynomialFeatures(degree = 2),
+                      LinearRegression())
+# This pipeline looks and acts like a standard Scikit-Learn object, and will 
+# apply all the specified steps to any input data.
+model.fit(X, y)
+print(y)
+print(model.predict(X))
+# All the steps of the model are applied automatically.
+
+### In Depth: Naive Bayes Classification
+# Naive Bayes models are a group of extremely fast and simple classification 
+# algorithms that are often suitable for very high-dimensional datasets. 
+# Because they are so fast and have so few tunable parameters, they end up 
+# being very useful as a quick-and-dirty baseline for a classification problem.
+
+#### Bayesian Classification
+# Naive Bayes classifiers are built on Bayesian classification methods. These 
+# rely on Bayes’s theorem
+
+# P(L \mid features) = \frac{P(features \mid L)P(L)}{P(features)}
+
+# If we are trying to decide between two labels — let’s call them L1 and L2 — 
+# then one way to make this decision is to compute the ratio of the posterior 
+# probabilities for each label. All we need now is some model by which we can 
+# compute P features Li for each label. Such a model is called a generative 
+# model.
+
+# Specifying this generative model for each label is the main piece of the 
+# training of such a Bayesian classifier. The general version of such a 
+# training step is a very difficult task, but we can make it simpler through 
+# the use of some simplifying assumptions about the form of this model.
+
+# This is where the “naive” in “naive Bayes” comes in - if we make very naive 
+# assumptions about the generative model for each label, we can find a rough 
+# approximation of the generative model for each class, and then proceed with 
+# the Bayesian classification. Different types of naive Bayes classifiers rest 
+# on different naive assumptions about the data. We begin with the standard 
+# imports.
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+
+#### Gaussian Naive Bayes
+# Perhaps the easiest naive Bayes classifier to understand is Gaussian naive 
+# Bayes.
+from sklearn.datasets import make_blobs
+X, y = make_blobs(100, 2, centers = 2, random_state = 2, cluster_std = 1.5)
+plt.clf()
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "RdBu")
+plt.show()
+plt.clf()
+
+# The procedure is implemented in Scikit-Learn’s sklearn.naive_bayes.GaussianNB
+# estimator.
+from sklearn.naive_bayes import GaussianNB
+model = GaussianNB()
+model.fit(X, y)
+# Now let’s generate some new data and predict the label...
+rng = np.random.RandomState(0)
+X_new = [-6, -14] + [14, 18] * rng.rand(2000, 2)
+y_new = model.predict(X_new)
+
+# Now we can plot this new data to get an idea of where the decision boundary is
+plt.clf()
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "RdBu")
+lim = plt.axis()
+plt.scatter(X_new[:, 0], X_new[:, 1], c = y_new, s = 20, cmap = "RdBu", 
+                                                            alpha = 0.1)
+plt.axis(lim);
+plt.show()
+plt.clf()
+# We see a slightly curved boundary in the classifications — in general, the 
+# boundary in Gaussian naive Bayes is quadratic.
+
+# A nice piece of this Bayesian formalism is that it naturally allows for 
+# probabilistic classification, which we can compute using the predict_proba 
+# method.
+y_prob = model.predict_proba(X_new)
+y_prob[-8: ].round(2)
+# The columns give the posterior probabilities of the first and second label, 
+# respectively.
+
+#### Multinomial Naive Bayes
+# Another useful example is multinomial naive Bayes, where the features are 
+# assumed to be generated from a simple multinomial distribution.
+
+##### Example: Classifying text
+# Let’s download the data and take a look at the target names.
