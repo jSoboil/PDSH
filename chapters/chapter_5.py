@@ -556,3 +556,43 @@ predict_category("discussing islam vs atheism")
 predict_category("determining the screen resolution")
 
 ### In Depth: Linear Regression
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+import numpy as np
+
+#### Simple Linear Regression
+# A straight-line fit is a model of the form y = ax + b where a is commonly 
+# known as the slope, and b is commonly known as the intercept.
+
+# Consider the following data, which is scattered about a line with a slope of 
+# 2 and an intercept of –5.
+rng = np.random.RandomState(1)
+x = 10 * rng.rand(50)
+y = 2 * x - 5 + rng.randn(50)
+plt.clf()
+plt.scatter(x, y);
+plt.show()
+plt.clf()
+
+# We can use Scikit-Learn’s LinearRegression estimator to fit this data and 
+# construct the best-fit line.
+from sklearn.linear_model import LinearRegression
+model = LinearRegression(fit_intercept = True)
+
+model.fit(x[:, np.newaxis], y)
+
+x_fit = np.linspace(0, 10, 1000)
+y_fit = model.predict(x_fit[:, np.newaxis])
+
+plt.scatter(x, y)
+plt.plot(x_fit, y_fit)
+plt.show()
+plt.clf()
+
+# The slope and intercept of the data are contained in the model’s fit 
+# parameters, which in Scikit-Learn are always marked by a trailing underscore. 
+# Here the relevant parameters are coef_ and intercept_.
+print("Model slope: ", model.coef_[0])
+print("Model intercept:", model.intercept_)
+
+#### Basis Function Regression
