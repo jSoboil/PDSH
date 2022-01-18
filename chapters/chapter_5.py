@@ -500,3 +500,59 @@ y_prob[-8: ].round(2)
 
 ##### Example: Classifying text
 # Let’s download the data and take a look at the target names.
+from sklearn.datasets import fetch_20newsgroups
+data = fetch_20newsgroups()
+data.target_names
+# For simplicity, we will select just a few of these categories, and download 
+# the training and testing set.
+categories = ["talk.religion.misc", "soc.religion.christian", "sci.space",
+              "comp.graphics"]
+train_data = fetch_20newsgroups(subset = "train", categories = categories)
+test_data = fetch_20newsgroups(subset = "test", categories = categories)
+# Here is a representative entry from the data...
+print(train_data.data[5])
+
+# In order to use this data for machine learning, we need to be able to convert 
+# the content of each string into a vector of numbers. For this we will use the
+# TF–IDF vectoriser, , and create a pipeline that attaches it to a multinomial 
+# naive Bayes classifier.
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import make_pipeline
+model = make_pipeline(TfidfVectorizer(), MultinomialNB())
+
+# With this pipeline, we can apply the model to the training data, and predict 
+# labels for the test data.
+model.fit(train_data.data, train_data.target)
+labels = model.predict(test_data.data)
+# Now that we have predicted the labels for the test data, we can evaluate them 
+# to learn about the performance of the estimator. For example, here is the 
+# confusion matrix between the true and predicted labels for the test data.
+from sklearn.metrics import confusion_matrix
+plt.clf()
+c_mat = confusion_matrix(test_data.target, labels)
+sns.heatmap(c_mat.T, square = True, annot = True, fmt = "d", cbar = False, 
+            xticklabels = train_data.target_names, 
+            yticklabels = train_data.target_names)
+            
+plt.xlabel("true label")
+plt.ylabel("predicted label");
+plt.show()
+plt.clf()
+# Evidently, even this very simple classifier can successfully separate space 
+# talk from computer talk, but it gets confused between talk about religion and 
+# talk about Christianity.
+
+# The very cool thing here is that we now have the tools to determine the 
+# category for any string, using the predict() method of this pipeline. Here’s a
+# quick utility function that will return the prediction for a single string.
+def predict_category(s, train = train_data, model = model):
+ pred = model.predict([s])
+ return train_data.target_names[pred[0]]
+
+# Let’s try it out.
+predict_category("sending a payload to the ISS")
+predict_category("discussing islam vs atheism")
+predict_category("determining the screen resolution")
+
+### In Depth: Linear Regression
