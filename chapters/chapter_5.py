@@ -596,3 +596,52 @@ print("Model slope: ", model.coef_[0])
 print("Model intercept:", model.intercept_)
 
 #### Basis Function Regression
+# The idea is to take our multidimensional linear model
+
+# y = a_0 + a_1 * x_1 + a_2 * x_2 + a_3 * x_3 ...
+
+# and build the x_1, x_2, x_3, and so on from our single-dimensional input x. 
+# That is, we let x_n = f n x , where f_n() is some function that transforms 
+# our data.
+
+# For example, if f_n(x) = x^n, the model becomes a polynomial regression.
+
+# y = a_0 + a_1 * x + a_2 * x^2 + a_3 * x^3 ...
+
+###### Polynomial basis functions
+# This polynomial projection is useful enough that it is built into Scikit-Learn,
+# using the PolynomialFeatures transformer.
+from sklearn.preprocessing import PolynomialFeatures
+x = np.array([2, 3, 4])
+poly = PolynomialFeatures(3, include_bias = False)
+poly.fit_transform(x[:, None])
+# We see here that the transformer has converted our one-dimensional array into 
+# a three-dimensional array by taking the exponent of each value. This new, 
+# higher- dimensional data representation can then be plugged into a linear 
+# regression.
+
+# Let’s make a 7th-degree polynomial model in this way.
+from sklearn.pipeline import make_pipeline
+poly_model = make_pipeline(PolynomialFeatures(7), 
+                           LinearRegression())
+# With this transform in place, we can use the linear model to fit much more 
+# complicated relationships between x and y. For example, here is a sine wave 
+# with noise.
+rng = np.random.RandomState(1)
+x = 10 * rng.rand(50)
+y = np.sin(x) + 0.1 * rng.rand(50)
+
+poly_model.fit(x[:, np.newaxis], y)
+# there's some code missing here for some reason...
+y_hat = poly_model.predict(x_fit[:, np.newaxis])
+
+plt.clf()
+plt.scatter(x, y)
+plt.plot(x_fit, y_fit)
+plt.show()
+
+##### Gaussian basis functions
+# Tne useful pattern is to fit a model that is not a sum of polynomial bases, 
+# but a sum of Gaussian bases. These Gaussian basis functions are not built into
+# Scikit-Learn, but we can write a custom transformer that will create them.
+from sklearn.base import BaseEstimator, TransformerMixin
