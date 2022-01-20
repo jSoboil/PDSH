@@ -645,3 +645,120 @@ plt.show()
 # but a sum of Gaussian bases. These Gaussian basis functions are not built into
 # Scikit-Learn, but we can write a custom transformer that will create them.
 from sklearn.base import BaseEstimator, TransformerMixin
+
+class GaussianFeatures(BaseEstimator, TransformerMixin):
+ """Uniformly spaced Gaussian features for one-dimension output"""
+ 
+ def __init__(self, N, width_factor = 2.0):
+  self.N = N
+  self.width_factor = width_factor
+  
+ @staticmethod
+ def _gauss_basis(x, y, width, axis = None):
+  arg = (x - y) / width
+  return np.exp(-0.5 * np.sum(arg ** 2, axis))
+ 
+ def fit(self, X, y = None):
+  # create N centres spread along the data range
+  self.centers_ = np.linspace(X.min(), X.max(), self.N)
+  self.width_ = self.width_factor * (self.centers_[1] - self.centers_[0])
+  return self
+ 
+ def transform(self, X):
+  return self._gauss_basis(X[:, :, np.newaxis], self.centers_, 
+                           self.width_, axis = 1)
+
+# Use function for new model...
+gauss_model = make_pipeline(GaussianFeatures(20),
+                            LinearRegression())
+gauss_model.fit(x[:, np.newaxis], y)
+y_hat = gauss_model.predict(x_fit[:, np.newaxis])
+# Plot...
+plt.clf()
+plt.scatter(x, y)
+plt.plot(x_fit, y_fit)
+plt.xlim(0, 10);
+plt.show()
+plt.clf()
+
+#### Regularization
+##### Ridge regression (L2 regularization)
+# Perhaps the most common form of regularization is known as ridge regression or
+# L2 regularization, sometimes also called Tikhonov regularization. This 
+# proceeds by penalising the sum of squares (2-norms) of the model coefficients;
+# in this case, the penalty on the model fit would be
+
+# P = \alpha \sum_{n = 1}^{N} \theta_{n}^2
+
+# where \alpha is a free parameter that controls the strength of the penalty. 
+# This type of penalized model is built into Scikit-Learn with the Ridge 
+# estimator.
+def basis_plot(model, title = None):
+ fig, ax = plt.subplots(2, sharex = True)
+ model.fit(x[:, np.newaxis], y)
+ ax[0].scatter(x, y)
+ ax[0].plot(x_fit, model.predict(x_fit[:, np.newaxis]))
+ ax[0].set(xlabel = 'x', ylabel = 'y', ylim = (-1.5, 1.5))
+ 
+ if title:
+  ax[0].set_title(title)
+  ax[1].plot(model.steps[0][1].centers_,
+             model.steps[1][1].coef_)
+  ax[1].set(xlabel = 'basis location',
+            ylabel = 'coefficient',
+            xlim = (0, 10))
+ 
+from sklearn.linear_model import Ridge
+model = make_pipeline(GaussianFeatures(30), Ridge(alpha = 0.1))
+basis_plot(model, title = "Ridge Regression")
+plt.show()
+plt.clf()
+
+##### Lasso regularization (L1)
+# Another very common type of regularization is known as lasso, and involves 
+# penalising the sum of absolute values (1-norms) of regression coefficients.
+
+# P = \alpha \sum_{n = 1}^{N} | \theta_{n}^2 |
+
+# Though this is conceptually very similar to ridge regression, the results can 
+# differ surprisingly: for example, due to geometric reasons lasso regression 
+# tends to favor sparse models where possible.
+from sklearn.linear_model import Lasso
+model = make_pipeline(GaussianFeatures(30), Lasso(alpha = 0.001))
+basis_plot(model, title = "Lasso Regression")
+plt.show();
+plt.clf()
+# As with ridge regularization, the \alpha parameter tunes the strength of the 
+# penalty, and should be determined via, for example, cross-validation.
+
+###### Example: Predicting Bicycle Traffic
+# Let’s take a look at whether we can predict the number of bicycle trips across
+# Seattle’s Fremont Bridge based on weather, season, and other factors. We will 
+# join the bike data with another dataset, and try to determine the extent to 
+# which weather and seasonal factors — temperature, precipitation, and daylight 
+# hours — affect the volume of bicycle traffic through this corridor.
+
+# Let’s start by loading the two datasets, indexing by date.
+import pandas as pd
+counts = pd.read_csv("data/Fremont_Bridge_Bicycle_Counter.csv", 
+                     index_col = "Date", parse_dates = True)
+weather = pd.read_csv("data/BicycleWeather.csv", index_col = "DATE", 
+                      parse_dates = True)
+# Next we will compute the total daily bicycle traffic, and put this in its own 
+# DataFrame...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
