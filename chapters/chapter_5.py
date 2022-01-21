@@ -752,7 +752,7 @@ daily = daily[["Total"]] # remove other columns
 # We saw previously that the patterns of use generally vary from day to day; 
 # let’s account for this in our data by adding binary columns that indicate the 
 # day of the week...
-days = ["Mon", "Tues", "Wed", "Thu", "Fri", "Sat", "Sun"]
+days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 for i in range(7):
  daily[days[i]] = (daily.index.day_of_week == i).astype(float)
 
@@ -787,11 +787,11 @@ plt.clf()
 # temperatures are in 1/10 deg C; convert to C
 weather["TMIN"] /= 10
 weather["TMAX"] /= 10
-weather["Temp (C)"] = 0.5 * (weather["TMIN"] + weather["TMAX"])
+weather['Temp (C)'] = 0.5 * (weather['TMIN'] + weather['TMAX'])
 
 # precip is in 1/10 mm; convert to inches
 weather["PRCP"] /= 254
-weather["dry day"] = (weather["PRCP"] == 0).astype(int)
+weather['dry day'] = (weather['PRCP'] == 0).astype(float)
 
 daily = daily.join(weather[["PRCP", "Temp (C)", "dry day"]])
 
@@ -802,7 +802,61 @@ daily["annual"] = (daily.index - daily.index[0]).days / 365.
 
 # Now our data is in order, and we can take a look at it.
 daily.head()
-
+daily = daily.fillna(0)
 # With this in place, we can choose the columns to use, and fit a linear 
 # regression model to our data. We will set fit_intercept = False, because the 
 # daily flags essentially operate as their own day-specific intercepts.
+column_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", 
+                "holiday", "daylight_hrs", "PRCP", "dry day", "Temp (C)", 
+                "annual"]
+X = daily[column_names]
+y = daily["Total"]
+
+model = LinearRegression(fit_intercept = False)
+model.fit(X, y)
+daily["predicted"] = model.predict(X)
+
+# Finally, we can compare the total and predicted bicycle traffic visually...
+plt.clf()
+daily[["Total", "predicted"]].plot(alpha = 0.5);
+plt.show()
+plt.clf()
+
+# It is evident that we have missed some key features, especially during the 
+# summer time. Either our features are not complete (i.e., people decide 
+# whether to ride to work based on more than just these) or there are some 
+# nonlinear relationships that we have failed to take into account (e.g., 
+# perhaps people ride less at both high and low temperatures). Nevertheless, 
+# our rough approximation is enough to give us some insights, and we can take a 
+# look at the coefficients of the linear model to estimate how much each 
+# feature contributes to the daily bicycle count...
+params = pd.Series(model.coef_, index = X.columns)
+params
+
+# These numbers are difficult to interpret without some measure of their 
+# uncertainty. We can compute these uncertainties quickly using bootstrap 
+# resamplings of the data.
+from sklearn.utils import resample
+np.random.seed(1)
+err = np.std([model.fit(*resample(X, y)).coef_
+              for i in range(1000)], 0)
+# With these errors estimated, let’s again look at the results.
+print(pd.DataFrame({"effect": params.round(0),
+                    "error": err.round(0)}))
+
+# We first see that there is a relatively stable trend in the weekly baseline - 
+# there are many more riders on weekdays than on weekends and holidays. We see 
+# that for each additional hour of daylight, 1007 ± 28 more people choose to 
+# ride; a temperature increase of one degree Celsius discourages 47 ± 12 people;
+# a dry day means an average of 352 ± 194 more riders; and each inch of 
+# precipitation means 5776 ± 459 more people leave their bike at home.
+
+### In-Depth: Support Vector Machines
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# use seaborn plotting defaults
+import seaborn as sns; sns.set()
+
+#### Motivating Support Vector Machines
