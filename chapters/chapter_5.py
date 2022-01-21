@@ -746,19 +746,63 @@ weather = pd.read_csv("data/BicycleWeather.csv", index_col = "DATE",
                       parse_dates = True)
 # Next we will compute the total daily bicycle traffic, and put this in its own 
 # DataFrame...
+daily = counts.resample("d").agg("sum")
+daily["Total"] = daily.sum(axis = 1)
+daily = daily[["Total"]] # remove other columns
+# We saw previously that the patterns of use generally vary from day to day; 
+# let’s account for this in our data by adding binary columns that indicate the 
+# day of the week...
+days = ["Mon", "Tues", "Wed", "Thu", "Fri", "Sat", "Sun"]
+for i in range(7):
+ daily[days[i]] = (daily.index.day_of_week == i).astype(float)
 
+# Similarly, we might expect riders to behave differently on holidays; let’s add
+# an indicator of this too.
+from pandas.tseries.holiday import USFederalHolidayCalendar
+cal = USFederalHolidayCalendar()
+holidays = cal.holidays("2012", "2016")
+daily = daily.join(pd.Series(1, index = holidays, name = "holiday"))
+daily["holiday"].fillna(0, inplace = True)
 
+# We also might suspect that the hours of daylight would affect how many people 
+# ride; let’s use the standard astronomical calculation to add this information.
+import datetime as dt
+def hours_of_daylight(date, axis=23.44, latitude=47.61):
+ """Compute the hours of daylight for the given date"""
+ days = (date - pd.datetime(2000, 12, 21)).days
+ m = (1. - np.tan(np.radians(latitude)) 
+      * np.tan(np.radians(axis) * np.cos(days * 2 * np.pi / 365.25)))
+ return 24. * np.degrees(np.arccos(1 - np.clip(m, 0, 2))) / 180.
 
+daily["daylight_hrs"] = list(map(hours_of_daylight, daily.index))
+plt.clf()
+daily[['daylight_hrs']].plot();
+plt.show()
+plt.clf()
 
+# We can also add the average temperature and total precipitation to the data. 
+# In addition to the inches of precipitation, let’s add a flag that indicates 
+# whether a day is dry (has zero precipitation).
 
+# temperatures are in 1/10 deg C; convert to C
+weather["TMIN"] /= 10
+weather["TMAX"] /= 10
+weather["Temp (C)"] = 0.5 * (weather["TMIN"] + weather["TMAX"])
 
+# precip is in 1/10 mm; convert to inches
+weather["PRCP"] /= 254
+weather["dry day"] = (weather["PRCP"] == 0).astype(int)
 
+daily = daily.join(weather[["PRCP", "Temp (C)", "dry day"]])
 
+# Finally, let’s add a counter that increases from day 1, and measures how many 
+# years have passed. This will let us measure any observed annual increase or 
+# decrease in daily crossings.
+daily["annual"] = (daily.index - daily.index[0]).days / 365.
 
+# Now our data is in order, and we can take a look at it.
+daily.head()
 
-
-
-
-
-
-
+# With this in place, we can choose the columns to use, and fit a linear 
+# regression model to our data. We will set fit_intercept = False, because the 
+# daily flags essentially operate as their own day-specific intercepts.
