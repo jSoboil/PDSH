@@ -860,3 +860,52 @@ from scipy import stats
 import seaborn as sns; sns.set()
 
 #### Motivating Support Vector Machines
+# Here we will consider instead discriminative classification: rather than 
+# modeling each class, we simply find a line or curve (in two dimensions) or 
+# manifold (in multiple dimensions) that divides the classes from each other.
+from sklearn.datasets import make_blobs
+X, y = make_blobs(n_samples = 50, centers = 2, 
+                  random_state = 0, cluster_std = 0.60)
+plt.clf()
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "autumn")
+plt.show()
+plt.clf()
+# A linear discriminative classifier would attempt to draw a straight line 
+# separating the two sets of data, and thereby create a model for 
+# classification. For two-dimensional data like that shown here, this is a task 
+# we could do by hand. But immediately we see a problem - there is more than 
+# one possible dividing line that can perfectly discriminate between the two 
+# classes!
+x_fit = np.linspace(-1, 3.5)
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "autumn")
+plt.plot([0.6], [2.1], "x", color = "red", 
+         markeredgewidth = 2, markersize = 10)
+for m, b in [(1, 0.65), (0.5, 1.6), (-0.2, 2.9)]:
+ plt.plot(x_fit, m * x_fit + b, "-k")
+plt.xlim(-1, 3.5);
+plt.show()
+plt.clf()
+# Evidently the simple intuition of “drawing a line between classes” is not 
+# enough, and we need to think a bit deeper.
+
+##### Support Vector Machines: Maximizing the Margin
+# Support vector machines offer one way to improve on this. Rather than simply
+# drawing a zero-width line between the classes, we can draw around each line 
+# a margin of some width, up to the nearest point. Here is an example of how 
+# this might look...
+x_fit = np.linspace(-1, 3.5)
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "autumn")
+
+for m, b, d in [(1, 0.65, 0.33), (0.5, 1.6, 0.55), (-0.2, 2.9, 0.2)]:
+ y_hat = m * x_fit + b
+ plt.plot(x_fit, y_hat, "-k")
+ plt.fill_between(x_fit, y_hat - d, y_hat + d, edgecolor = "none", 
+                  color = "#AAAAAA", alpha = 0.4)
+plt.xlim(-1, 3.5);
+plt.show()
+plt.clf()
+# In support vector machines, the line that maximizes this margin is the one 
+# we will choose as the optimal model. Hence, SVMs are an example of such a 
+# maximum margin estimator.
+
+##### Fitting a support vector machine
