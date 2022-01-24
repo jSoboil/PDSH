@@ -909,3 +909,90 @@ plt.clf()
 # maximum margin estimator.
 
 ##### Fitting a support vector machine
+# For this example, we will use a linear kernel.
+from sklearn.svm import SVC
+model = SVC(kernel = "linear", C = 1E10)
+model.fit(X, y)
+# To better visualize what’s happening, let’s create a convenience function 
+# that will plot SVM decision boundaries for us...
+def plot_svc_decision_function(model, ax = None, plot_support = True):
+ """Plot the decision function for a two-dimensional SVC"""
+ if ax is None:
+     ax = plt.gca()
+ # else
+ xlim = ax.get_xlim()
+ ylim = ax.get_ylim()
+  
+ # create grid to evaluate model
+ x = np.linspace(xlim[0], xlim[1], 30)
+ y = np.linspace(ylim[0], ylim[1], 30)
+ Y, X = np.meshgrid(y, x)
+ xy = np.vstack([X.ravel(), Y.ravel()]).T
+ P = model.decision_function(xy).reshape(X.shape)
+ 
+ # plot decision boundary and margins
+ ax.contour(X, Y, P, colors='k',
+            levels = [-1, 0, 1], alpha = 0.5, 
+            linestyles=['--', '-', '--'])
+             
+ # plot support vectors
+ if plot_support: 
+     ax.scatter(model.support_vectors_[:, 0],
+                model.support_vectors_[:, 1],
+                s = 300, linewidth = 1, facecolors = 'none');
+ ax.set_xlim(xlim)
+ ax.set_ylim(ylim)
+
+plt.clf()
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "autumn")
+plot_svc_decision_function(model)
+plt.show()
+# This is the dividing line that maximizes the margin between the two sets of 
+# points. These points are the pivotal elements of this fit, and are known as 
+# the support vectors, and give the algorithm its name.
+
+# In Scikit-Learn, the identity of these points is stored in the 
+# support_vectors_ attribute of the classifier...
+model.support_vectors_
+
+# A key to this classifier’s success is that for the fit, only the position of 
+# the support vectors matter; any points further from the margin that are on 
+# the correct side do not modify the fit.
+
+# We can see this, for example, if we plot the model learned from the first 60
+# points and first 120 points of this dataset.
+plt.clf()
+
+def plot_svm(N = 10, ax = None):
+ X, y = make_blobs(n_samples = 200, centers = 2,
+                   random_state = 0, cluster_std = 0.60)
+ X = X[:N]
+ y = y[:N]
+ model = SVC(kernel = 'linear', C = 1E10)
+ model.fit(X, y)
+ 
+ ax = ax or plt.gca()
+ ax.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = 'autumn')
+ ax.set_xlim(-1, 4)
+ ax.set_ylim(-1, 6)
+ plot_svc_decision_function(model, ax)
+
+
+fig, ax = plt.subplots(1, 2, figsize = (16, 6))
+fig.subplots_adjust(left = 0.0625, right = 0.95, wspace = 0.1)
+
+fig, ax = plt.subplots(1, 2, figsize = (16, 6))
+fig.subplots_adjust(left = 0.0625, right = 0.95, wspace = 0.1) 
+for axi, N in zip(ax, [60, 120]):
+     plot_svm(N, axi)
+     axi.set_title('N = {0}'.format(N))
+plt.show()
+plt.clf()
+
+# You can use IPython’s interactive widgets to view this feature of the SVM 
+# model interactively...
+from ipywidgets import interact, fixed
+interact(plot_svm, N = [10, 200], ax = fixed(None))
+# Note: this only works with Jupyter Widgets...
+
+##### Beyond linear boundaries: Kernel SVM
