@@ -996,3 +996,59 @@ interact(plot_svm, N = [10, 200], ax = fixed(None))
 # Note: this only works with Jupyter Widgets...
 
 ##### Beyond linear boundaries: Kernel SVM
+# Where SVM becomes extremely powerful is when it is combined with kernels. 
+#To motivate the need for kernels, let’s look at some data that is not 
+# linearly separable.
+from sklearn.datasets import make_circles
+X, y = make_circles(100, factor = 0.1, noise = 0.1)
+clf = SVC(kernel = "linear").fit(X, y)
+
+plt.clf()
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "autumn")
+plot_svc_decision_function(clf, plot_support = False)
+plt.show()
+# It is clear that no linear discrimination will ever be able to separate 
+# this data.
+
+# As a solution, we might project the data into a higher dimension such that 
+# a linear separator would be sufficient. For example, one simple projection 
+# we could use would be to compute a radial basis function centered on the 
+# middle clump.
+r = np.exp(-(X ** 2).sum(1))
+
+# We can visualize this extra data dimension using a three-dimensional plot.
+from mpl_toolkits import mplot3d
+
+def plot_3D(elev = 30, azim = 30, X = X, y = y):
+ ax = plt.subplot(projection = '3d')
+ ax.scatter3D(X[:, 0], X[:, 1], r, c = y, s = 50, cmap='autumn')
+ ax.view_init(elev = elev, azim = azim)
+ ax.set_xlabel('x')
+ ax.set_ylabel('y')
+ ax.set_zlabel('r')
+
+plot_3D()
+plt.show()
+plt.clf()
+# We can see that with this additional dimension, the data becomes trivially 
+# linearly separable, by drawing a separating plane at, say, r=0.7.
+
+# In general, however, the need to make such a choice is a problem - we would 
+# like to somehow automatically find the best basis functions to use. In 
+# Scikit-Learn, we can apply kernelized SVM simply by changing our linear 
+# kernel to an RBF (radial basis function) kernel, using the kernel model 
+# hyperparameter.
+clf = SVC(kernel = "rbf", C = 1E6)
+clf.fit(X, y)
+
+# plot...
+plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "autumn")
+plot_svc_decision_function(clf)
+plt.scatter(clf.support_vectors_[:, 0], clf.support_vectors_[:, 1], 
+            s = 300, lw = 1, facecolors = "none");
+plt.show()
+plt.clf()
+# Using this kernelized support vector machine, we learn a suitable nonlinear 
+# decision boundary.
+
+##### Tuning the SVM: Softening margins
