@@ -1052,22 +1052,24 @@ plt.clf()
 # decision boundary.
 
 ##### Tuning the SVM: Softening margins
-# But what if your data has some amount of overlap? For example, you may have data like 
-# this...
+# But what if your data has some amount of overlap? For example, you may have 
+# data like this...
 X, y = make_blobs(n_samples = 100, centers = 2, random_state = 0, cluster_std = 1.2)
 plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "autumn")
 plt.show()
 plt.clf()
 
-# To handle this case, the SVM implementation has a bit of a fudge-factor that “softens” 
-# the margin; that is, it allows some of the points to creep into the margin if that 
-# allows a better fit. The hardness of the margin is controlled by a tuning parameter, 
-# most often known as C. For very large C, the margin is hard, and points cannot lie in 
-# it. For smaller C, the margin is softer, and can grow to encompass some points.
+# To handle this case, the SVM implementation has a bit of a fudge-factor that 
+# “softens” the margin; that is, it allows some of the points to creep into the 
+# margin if that allows a better fit. The hardness of the margin is controlled by
+# a tuning parameter, most often known as C. For very large C, the margin is 
+# hard, and points cannot lie in it. For smaller C, the margin is softer, and 
+# can grow to encompass some points.
 
-# Below gives a visual picture of how a changing C parameter affects the final fit, via 
-# the softening of the margin...
-X, y = make_blobs(n_samples = 100, centers = 2, random_state = 0, cluster_std = 0.8)
+# Below gives a visual picture of how a changing C parameter affects the final 
+# fit, via the softening of the margin...
+X, y = make_blobs(n_samples = 100, centers = 2, random_state = 0, 
+                  cluster_std = 0.8)
 fig, ax = plt.subplots(1, 2, figsize = (16, 6))
 fig.subplots_adjust(left = 0.0625, right = 0.95, wspace = 0.1)
 
@@ -1081,14 +1083,14 @@ for axi, C in zip(ax, [10.0, 0.1]):
  axi.set_title("C = {0:0.1f}".format(C), size = 14)
 plt.show()
 plt.clf()
-# Remember, the optimal value of the C parameter will depend on your dataset, and should 
-# be tuned via cross-validation or a similar procedure.
+# Remember, the optimal value of the C parameter will depend on your dataset, and
+# should be tuned via cross-validation or a similar procedure.
 
 ###### Example: Face Recognition
-# As an example of support vector machines in action, let’s take a look at the facial 
-# recognition problem. We will use the Labeled Faces in the Wild dataset, which consists of
-# several thousand collated photos of various public figures. A fetcher for the dataset is
-# built into Scikit-Learn.
+# As an example of support vector machines in action, let’s take a look at the 
+# facial recognition problem. We will use the Labeled Faces in the Wild dataset, 
+# which consists of several thousand collated photos of various public figures.
+# A fetcher for the dataset is built into Scikit-Learn.
 from sklearn.datasets import fetch_lfw_people
 faces = fetch_lfw_people(min_faces_per_person = 60)
 print(faces.target_names)
@@ -1102,13 +1104,13 @@ for i, axi in enumerate(ax.flat):
 plt.show()
 plt.clf()
 
-# We could proceed by simply using each pixel value as a feature, but often it is more 
-#effective to use some sort of preprocessor to extract more meaningful features; here we 
-# will use a principal component analysis to extract 150 fundamental components to feed 
-# into our support vector machine classifier.
+# We could proceed by simply using each pixel value as a feature, but often it 
+# is more effective to use some sort of preprocessor to extract more meaningful 
+# features; here we will use a principal component analysis to extract 150 
+# fundamental components to feed into our support vector machine classifier.
 
-# We can do this most straightforwardly by packaging the preprocessor and the classifier 
-# into a single pipeline.
+# We can do this most straightforwardly by packaging the preprocessor and the 
+# classifier into a single pipeline.
 from sklearn.svm import SVC
 from sklearn.decomposition import PCA
 from sklearn.pipeline import make_pipeline
@@ -1120,23 +1122,24 @@ model = make_pipeline(pca, svc)
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(faces.data, faces.target,
                                                     random_state = 42)
-# Finally, we can use a grid search cross-validation to explore combinations of parameters.
-# Here we will adjust C (which controls the margin hardness) and gamma (which controls the 
-# size of the radial basis function kernel), and determine the best model...
+# Finally, we can use a grid search cross-validation to explore combinations of 
+# parameters. Here we will adjust C (which controls the margin hardness) and 
+# gamma (which controls the size of the radial basis function kernel), and 
+# determine the best model...
 from sklearn.model_selection import GridSearchCV
 param_grid = {"svc__C": [1, 5, 10, 50],
               "svc__gamma": [0.0001, 0.0005, 0.001, 0.005]}
 grid = GridSearchCV(model, param_grid)
 grid.fit(X_train, y_train)
 print(grid.best_params_)
-# Now with this cross-validated model, we can predict the labels for the test data, which 
-# the model has not yet seen.
+# Now with this cross-validated model, we can predict the labels for the test 
+# data, which the model has not yet seen.
 model = grid.best_estimator_
 y_hat = model.predict(Xtest)
 
 ## In-Depth: Decision Trees and Random Forests
-# Random forests are an example of an ensemble method, a method that relies on aggregating 
-# the results of an ensemble of simpler estimators.
+# Random forests are an example of an ensemble method, a method that relies on 
+# aggregating the results of an ensemble of simpler estimators.
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
@@ -1149,11 +1152,12 @@ X, y = make_blobs(n_samples = 300, centers = 4,
 plt.scatter(X[:, 0], X[:, 1], c = y, s = 50, cmap = "rainbow")
 plt.show()
 
-# This process of fitting a decision tree to our data can be done in Scikit-Learn with the
-# DecisionTreeClassifier estimator.
+# This process of fitting a decision tree to our data can be done in Scikit-Learn
+# with the DecisionTreeClassifier estimator.
 from sklearn.tree import DecisionTreeClassifier
 tree = DecisionTreeClassifier().fit(X, y)
-# Let’s write a quick utility function to help us visualize the output of the classifier
+# Let’s write a quick utility function to help us visualize the output of the 
+# classifier
 def visualize_classifier(model, X, y, ax=None, cmap='rainbow'): 
  ax = ax or plt.gca()
  
