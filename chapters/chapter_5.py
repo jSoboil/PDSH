@@ -1186,3 +1186,113 @@ visualize_classifier(DecisionTreeClassifier(), X, y)
 plt.show()
 
 ##### Decision trees and overfitting
+# it is very easy to go too deep in the tree, and thus to fit details of the 
+# particular data rather than the overall properties of the distributions they 
+# are drawn from.
+
+##### Ensembles of Estimators: Random Forest
+# Multiple overfitting estimators can be combined to reduce the effect of this 
+# overfitting. This is called called bagging. We can do this type of bagging 
+# classification manually using Scikit-Learn’s Bagging Classifier meta-estimator.
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import BaggingClassifier
+
+tree = DecisionTreeClassifier()
+bag = BaggingClassifier(tree, n_estimators = 100, max_samples = 0.8, 
+                        random_state = 1)
+
+bag.fit(X, y)
+visualize_classifier(bag, X, y)
+plt.show()
+plt.clf()
+
+# In Scikit-Learn, such an optimized ensemble of randomized decision trees is 
+# implemented in the RandomForestClassifier estimator, which takes care of all 
+# the randomization automatically. All you need to do is select a number of 
+# estimators, and it will very quickly (in parallel, if desired) fit the 
+# ensemble of trees.
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(n_estimators = 100, random_state = 0)
+visualize_classifier(model, X, y);
+plt.show()
+plt.clf()
+
+#### Random Forest Regression
+# Random forests can also be made to work in the case of regression (that is, 
+# continuous rather than categorical variables).
+
+# Consider the following data, drawn from the combination of a fast and slow 
+# oscillation.
+rng = np.random.RandomState(42)
+x = 10 * rng.rand(200)
+
+def model(x, sigma = 0.3):
+ fast_oscillation = np.sin(5 * x)
+ slow_oscillation = np.sin(0.5 * x)
+ error = sigma * rng.randn(len(x))
+ 
+ return slow_oscillation + fast_oscillation + error
+
+y = model(x)
+plt.errorbar(x, y, 0.3, fmt = "o")
+plt.show()
+plt.clf()
+
+# Using the random forest regressor, we can find the best-fit curve as follows
+from sklearn.ensemble import RandomForestRegressor
+
+forest = RandomForestRegressor(200)
+forest.fit(x[:, None], y)
+
+x_fit = np.linspace(0, 10, 1000)
+y_hat = forest.predict(x_fit[:, None])
+y_true = model(x_fit, sigma = 0)
+
+plt.errorbar(x, y, 0.3, fmt = "o", alpha = 0.5)
+plt.plot(x_fit, y_fit, "-r")
+plt.plot(x_fit, y_true, "-k", alpha = 0.5)
+plt.show()
+plt.clf()
+
+###### Example: Random Forest for Classifying Digits
+from sklearn.datasets import load_digits
+digits = load_digits()
+digits.keys()
+
+# Plot data...
+fig = plt.figure(figsize = (6, 6)) 
+# figure size in inches
+fig.subplots_adjust(left = 0, right = 1, bottom = 0, top = 1, hspace = 0.05,
+                    wspace = 0.05)
+# plot the digits: each image is 8x8 pixels
+for i in range(64):
+ ax = fig.add_subplot(8, 8, i + 1, xticks = [], yticks = [])
+ ax.imshow(digits.images[i], cmap = plt.cm.binary, interpolation = 'nearest')
+ # label the image with the target value
+ ax.text(0, 7, str(digits.target[i]))
+plt.show()
+plt.clf()
+
+# We can quickly classify the digits using a random forest as follows
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(digits.data, digits.target, 
+                                                    random_state = 0)
+model = RandomForestClassifier(n_estimators = 1000)
+model.fit(X_train, y_train)
+y_hat = model.predict(X_test)
+
+# We can take a look at the classification report for this classifier
+from sklearn import metrics
+print(metrics.classification_report(y_hat, y_test))
+
+from sklearn.metrics import confusion_matrix
+mat = confusion_matrix(y_test, y_hat)
+sns.heatmap(mat.T, square = True, annot = True, fmt = 'd', cbar = False)
+plt.xlabel('true label')
+plt.ylabel('predicted label');
+plt.show()
+plt.clf()
+
+### In Depth: Principal Component Analysis
