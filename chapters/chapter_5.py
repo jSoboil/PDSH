@@ -1296,3 +1296,56 @@ plt.show()
 plt.clf()
 
 ### In Depth: Principal Component Analysis
+# PCA is fundamentally a dimensionality reduction algorithm.
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+
+#### Introducing Principal Component Analysis
+rng = np.random.RandomState(1)
+X = np.dot(rng.rand(2, 2), rng.randn(2, 200)).T
+plt.scatter(X[:, 0], X[:, 1])
+plt.axis("equal");
+plt.show()
+plt.clf()
+
+# In principal component analysis, one quantifies variable relationships by 
+# finding a list of the principal axes in the data, and using those axes to 
+# describe the dataset. Using Scikit-Learn’s PCA estimator, we can compute this 
+# as follows.
+from sklearn.decomposition import PCA
+pca = PCA(n_components = 2)
+pca.fit(X)
+# The fit learns some quantities from the data, most importantly the “components”
+# and “explained variance”...
+print(pca.components_)
+print(pca.explained_variance_)
+
+# To see what these numbers mean, let’s visualize them as vectors over the input
+# data, using the “components” to define the direction of the vector, and the 
+# “explained variance” to define the squared-length of the vector...
+def draw_vector(v_0, v_1, ax = None):
+ ax = ax or plt.gca()
+ arrowprops = dict(arrowstyle = "->",
+                   linewidth = 2,
+                   shrinkA = 0, shrinkB = 0)
+ ax.annotate("", v_1, v_0, arrowprops = arrowprops)
+
+# plot data
+plt.scatter(X[:, 0], X[:, 1], alpha = 0.2)
+for length, vector in zip(pca.explained_variance_, pca.components_):
+ v = vector * 3 * np.sqrt(length)
+ draw_vector(pca.mean_, pca.mean_ + v)
+plt.axis("equal");
+plt.show()
+# These vectors represent the principal axes of the data, and the length shown is
+# an indication of how “important” that axis is in describing the distribution 
+# of the data — more precisely, it is a measure of the variance of the data when 
+# projected onto that axis. The projection of each data point onto the principal
+# axes are the “principal components” of the data.
+
+# This transformation from data axes to principal axes is as an affine 
+# transformation, which basically means it is composed of a translation, 
+# rotation, and uniform scaling.
+
+##### PCA as dimensionality reduction
