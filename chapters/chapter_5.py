@@ -1338,6 +1338,7 @@ for length, vector in zip(pca.explained_variance_, pca.components_):
  draw_vector(pca.mean_, pca.mean_ + v)
 plt.axis("equal");
 plt.show()
+plt.clf()
 # These vectors represent the principal axes of the data, and the length shown is
 # an indication of how “important” that axis is in describing the distribution 
 # of the data — more precisely, it is a measure of the variance of the data when 
@@ -1349,3 +1350,174 @@ plt.show()
 # rotation, and uniform scaling.
 
 ##### PCA as dimensionality reduction
+# Using PCA for dimensionality reduction involves zeroing out one or more of the 
+# smallest principal components, resulting in a lower-dimensional projection of 
+# the data that preserves the maximal data variance.
+
+# Here is an example of using PCA as a dimensionality reduction transform.
+pca = PCA(n_components = 1)
+pca.fit(X)
+X_pca = pca.transform(X)
+print("original shape: ", X.shape)
+print("original shape: ", X_pca.shape)
+
+# The transformed data has been reduced to a single dimension. To understand the 
+# effect of this dimensionality reduction, we can perform the inverse transform 
+# of this reduced data and plot it along with the original data...
+X_new = pca.inverse_transform(X_pca)
+plt.scatter(X[:, 0], X[:, 1], alpha = 0.2)
+plt.scatter(X_new[:, 0], X_new[:, 1], alpha = 0.8)
+plt.axis('equal');
+plt.show()
+plt.clf()
+
+# The "information"" along the least important principal axis or axes is removed,
+# leaving only the component(s) of the data with the highest variance.
+
+# But the book doesn't add that this has no deeper understanding, i.e. causality!
+# Hence, PCA can be dangerous if not done carefully, especially in medical field.
+
+#### In-Depth: Manifold Learning
+# While PCA is flexible, fast, and easily interpretable, it does not perform so 
+# well when there are nonlinear relationships within the data. To address this 
+# deficiency, we can turn to a class of methods known as manifold learning — a 
+# class of unsupervised estimators that seeks to describe datasets as 
+# low-dimensional manifolds embedded in high-dimensional spaces.
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set() 
+import numpy as np
+
+##### Manifold Learning: “HELLO”
+# To make these concepts more clear, let’s start by generating some 
+# two-dimensional data that we can use to define a manifold. Here is a function 
+# that will create data in the shape of the word “HELLO”.
+def make_hello(N = 1000, rseed = 42):
+ # Make a plot with "HELLO" text; save as png
+ fig, ax = plt.subplots(figsize = (4, 1))
+ fig.subplots_adjust(left = 0, right = 1, bottom = 0, top = 1)
+ ax.axis("off")
+ ax.text(0.5, 0.4,  "HELLO", va = "center", ha = "center", weight = "bold", 
+         size = 85)
+ fig.savefig("img/hello.png")
+ plt.close(fig)
+ 
+ # Open PNG and draw random points on it...
+ from matplotlib.image import imread
+ data = imread("hello.png")[::-1, :, 0].T
+ rng = np.random.RandomState(rseed)
+ X = rng.rand(4 * N, 2)
+ i, j = (X * data.shape).astype(int).T
+ mask = (data[i, j] < 1)
+ X = X[mask]
+ X[:, 0] *= (data.shape[0] / data.shape[1])
+ X = X[:N]
+ return X[np.argsort(X[:, 0])]
+
+# Let’s call the function and visualize the resulting data...
+X = make_hello(1000)
+colourise = dict(c = X[:, 0], cmap = plt.cm.get_cmap("rainbow", 5))
+plt.scatter(X[:, 0], X[:, 1], **colourise)
+plt.axis("equal")
+plt.show()
+plt.clf()
+
+###### Multidimensional Scaling (MDS)
+# Looking at data like this, we can see that the particular choice of x and y 
+# values of the dataset are not the most fundamental description of the data; we 
+# can scale, shrink, or rotate the data, and the “HELLO” will still be apparent. 
+# For example, if we use a rotation matrix to rotate the data, the x and y values
+# change, but the data is still fundamentally the same.
+def rotate(X, angle):
+ theta = np.deg2rad(angle)
+ R = [[np.cos(theta), np.sin(theta)],
+      [-np.sin(theta), np.cos(theta)]]
+ return np.dot(X, R)
+
+X_2 = rotate(X, 20) + 5
+plt.scatter(X_2[:, 0], X_2[:, 1], **colourise)
+plt.axis("equal")
+plt.show()
+plt.clf()
+
+# This tells us that the x and y values are not necessarily fundamental to the 
+# relationships in the data. What is fundamental, in this case, is the distance 
+# between each point and the other points in the dataset.
+
+# A common way to represent this is to use a distance matrix: for N points, we 
+# construct an N × N array such that entry i, j contains the distance between 
+# point i and point j. Let’s use Scikit-Learn’s efficient pair wise_distances 
+# function to do this for our original data...
+from sklearn.metrics import pairwise_distances
+D = pairwise_distances(X)
+D.shape
+# As promised, for our N = 1,000 points, we obtain a 1,000×1,000 matrix, which 
+# can be visualized as...
+plt.imshow(D, zorder = 2, cmap = "Blues", interpolation = "nearest")
+plt.colorbar();
+plt.show()
+plt.clf()
+# If we similarly construct a distance matrix for our rotated and translated 
+# data, we see that it is the same...
+D_2 = pairwise_distances(X_2)
+np.allclose(D, D_2)
+
+# This distance matrix gives us a representation of our data that is invariant to
+# rotations and translations, but the visualization of the matrix is not entirely
+# intuitive. 
+
+# While computing this distance matrix from the (x, y) coordinates is 
+# straight‐forward, transforming the distances back into x and y coordinates is 
+# rather difficult. This is exactly what the multidimensional scaling algorithm 
+# aims to do - given a distance matrix between points, it recovers a 
+# D-dimensional coordinate representation of the data. Let’s see how it works 
+# for our distance matrix, using the precomputed dissimilarity to specify that 
+# we are passing a distance matrix...
+from sklearn.manifold import MDS
+model = MDS(n_components = 2, dissimilarity = "precomputed", random_state = 1)
+out = model.fit_transform(D)
+plt.scatter(out[:, 0], out[:, 1], **colourise)
+plt.axis("equal");
+plt.show()
+plt.clf()
+# The MDS algorithm recovers one of the possible two-dimensional coordinate 
+# representations of our data, using only the N × N distance matrix describing 
+# the relationship between the data points.
+
+##### MDS as Manifold Learning
+# The usefulness of this becomes more apparent when we consider the fact that 
+# distance matrices can be computed from data in any dimension. So, for example
+def random_projection(X, dimension = 3, rseed = 42):
+ assert dimension >= X.shape[1]
+ rng = np.random.RandomState(rseed)
+ C = rng.randn(dimension, dimension)
+ e, V = np.linalg.eigh(np.dot(C, C.T))
+ return np.dot(X, V[:X.shape[1]])
+
+X_3 = random_projection(X, 3)
+X_3.shape
+# Let’s visualize these points to see what we’re working with...
+from mpl_toolkits import mplot3d
+ax = plt.axes(projection = "3d")
+ax.scatter3D(X_3[:, 0], X_3[:, 1], X_3[:, 2],
+             **colourise)
+ax.view_init(azim = 70, elev = 50)
+plt.show()
+plt.clf()
+
+# We can now ask the MDS estimator to input this three-dimensional data, compute 
+# the distance matrix, and then determine the optimal two-dimensional embedding 
+# for this distance matrix. The result recovers a representation of the original 
+# data.
+model = MDS(n_components = 2, random_state = 1)
+out_3 = model.fit_transform(X_3)
+plt.scatter(out_3[:, 0], out_3[:, 1], **colourise)
+plt.axis("equal");
+plt.show()
+plt.clf()
+
+# This is essentially the goal of a manifold learning estimator - given 
+# high-dimensional embedded data, it seeks a low-dimensional representation of 
+# the data that preserves certain relationships within the data. In the case of 
+# MDS, the quantity preserved is the distance between every pair of points.
+
+##### Nonlinear Embeddings: Where MDS Fails
