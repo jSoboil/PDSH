@@ -1652,3 +1652,238 @@ plt.show()
 plt.clf()
 
 ### In Depth: k-Means Clustering
+# Here we will move on to another class of unsupervised machine learning 
+# models - clustering algorithms.
+
+# Many clustering algorithms are available in Scikit-Learn and elsewhere, but 
+# perhaps the simplest to understand is an algorithm known as k-means 
+# clustering, which is implemented in sklearn.cluster.KMeans. We begin with 
+# the standard imports.
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set() # for plot style
+import numpy as np
+
+#### Intro to k-Means
+# First, let’s generate a two-dimensional dataset containing four distinct 
+# blobs. To emphasise that this is an unsupervised algorithm, we will leave 
+# the labels out of the visualisation.
+from sklearn.datasets import make_blobs
+X, y_true = make_blobs(n_samples = 300, centers = 4, 
+                       cluster_std = 0.60, random_state = 0)
+plt.scatter(X[:, 0], X[:, 1], s = 50)
+plt.show()
+plt.clf()
+# By eye, it is relatively easy to pick out the four clusters. The k-means 
+# algorithm does this automatically, and in Scikit-Learn uses the typical 
+# estimator API.
+from sklearn.cluster import KMeans
+kMeans = KMeans(n_clusters = 4)
+kMeans.fit(X)
+y_hat = kMeans.predict(X)
+# plot results
+plt.scatter(X[:, 0], X[:, 1], c = y_hat, s = 50, cmap = "viridis")
+centers = kMeans.cluster_centers_
+plt.scatter(centers[:, 0], centers[:, 1], c = "black", s = 200, alpha = 0.5)
+plt.show()
+plt.clf()
+
+#### k-Means Algorithm - EM
+# Expectation–maximization (E–M) is a powerful algorithm that comes up in a 
+# variety of contexts within data science. k-means is a particularly simple 
+# and easy-to- understand application of the algorithm.
+
+# In short, the expectation–maximization approach consists of the following 
+# procedure
+
+# 1. Guess some cluster centers
+# 2. Repeat until converged
+#  a. E-Step - assign points to the nearest cluster center
+#  b. M-Step - set the cluster centers to the mean
+
+# Here the “E-step” or “Expectation step” is so named because it involves 
+# updating our expectation of which cluster each point belongs to. The 
+# “M-step” or “Maximization step” is so named because it involves maximizing 
+# some fitness function that defines the location of the cluster centers — in 
+# this case, that maximization is accomplished by taking a simple mean of the 
+# data in each cluster.
+
+# The k-means algorithm is simple enough that we can write it in a few lines 
+# of code. The following is a very basic implementation
+from sklearn.metrics import pairwise_distances_argmin
+
+def find_clusters(X, n_clusters, rseed = 2):
+ # 1. Randomly choose clusters
+ rng = np.random.RandomState(rseed)
+ i = rng.permutation(X.shape[0])[:n_clusters]
+ centers = X[i]
+ 
+ while True:
+  # 2a. Assign labels based on closest center
+  labels = pairwise_distances_argmin(X, centers)
+  # 2b. Find new centers from means of points
+  new_centers = np.array([X[labels == i].mean(0)
+                          for i in range(n_clusters)])
+  # 2c. Check for convergence
+  if np.all(centers == new_centers):
+   break
+  centers = new_centers
+  
+ return centers, labels
+
+centers, labels = find_clusters(X, 4)
+plt.scatter(X[:, 0], X[:, 1], c = labels, s = 50, 
+            cmap = "viridis");
+plt.show()
+# Most well-tested implementations will do a bit more than this under the hood,
+# but the preceding function gives the gist of the expectation–maximization 
+# approach.
+
+# NB! Careful about non-linearity
+
+##### Example 1: k-Means on digits
+from sklearn.datasets import load_digits
+digits = load_digits()
+digits.data.shape
+# The clustering can be performed as we did before.
+kMeans = KMeans(n_clusters = 10, random_state = 0)
+clusters = kMeans.fit_predict(digits.data)
+kMeans.cluster_centers_.shape
+# The result is 10 clusters in 64 dimensions. Notice that the cluster centers 
+# themselves are 64-dimensional points, and can themselves be interpreted as 
+# the “typical” digit within the cluster. Let’s see what these cluster centers
+# look like.
+fig, ax = plt.subplots(2, 5, figsize = (8, 3))
+centers = kMeans.cluster_centers_.reshape(10, 8, 8)
+for axi, center in zip(ax.flat, centers):
+ axi.set(xticks = [], yticks = [])
+ axi.imshow(center, interpolation = "nearest", cmap = plt.cm.binary)
+plt.show()
+plt.clf()
+# Because k-means knows nothing about the identity of the cluster, the 0–9 
+# labels may be permuted. We can fix this by matching each learned cluster 
+# label with the true labels found in them.
+from scipy.stats import mode
+
+labels = np.zeros_like(clusters)
+for i in range(10):
+ mask = (clusters == i)
+ labels[mask] = mode(digits.target[mask])[0]
+# Now we can check how accurate our unsupervised clustering was in finding 
+# similar digits within the data.
+from sklearn.metrics import accuracy_score
+accuracy_score(digits.target, labels)
+# With just a simple k-means algorithm, we discovered the correct grouping for 
+# 80% of the input digits! Let’s check the confusion matrix for this...
+from sklearn.metrics import confusion_matrix
+c_mat = confusion_matrix(digits.target, labels)
+sns.heatmap(c_mat.T, square = True, annot = True, fmt = "d", cbar = False,
+            xticklabels = digits.target_names, 
+            yticklabels = digits.target_names)
+plt.xlabel("true label")
+plt.ylabel("y_hat label");
+plt.show()
+plt.clf()
+
+# Just for fun, let’s try to push this even further. We can use the 
+# t-distributed stochastic neighbor embedding (t-SNE) algorithm to preprocess 
+# the data before performing k-means. t-SNE is a non‐linear embedding 
+# algorithm that is particularly adept at preserving points within clusters. 
+# Let’s see how it does.
+from sklearn.manifold import TSNE
+
+# Project the data
+tsne = TSNE(n_components = 2, init = "pca", random_state = 0)
+digits_proj = tsne.fit_transform(digits.data)
+
+# Compute clusters
+kMeans = KMeans(n_clusters = 10, random_state = 0)
+clusters = kMeans.fit_predict(digits_proj)
+
+# Permute labels
+labels = np.zeros_like(clusters)
+for i in range(10):
+ mask = (clusters == i)
+ labels[mask] = mode(digits.target[mask])[0]
+
+# Compute accuracy
+accuracy_score(digits.target, labels)
+# That’s roughly 94% classification accuracy without using the labels. This is
+# the power of unsupervised learning when used carefully - it can extract 
+# information from the dataset that it might be difficult to do by hand or by
+# eye.
+
+##### Example 2: k-means for color compression
+from sklearn.datasets import load_sample_image
+china = load_sample_image("china.jpg")
+ax = plt.axes(xticks = [], yticks = [])
+ax.imshow(china);
+plt.show()
+plt.clf()
+# The image itself is stored in a three-dimensional array of size (height, 
+# width, RGB), containing red/blue/green contributions as integers from 0 to 
+# 255.
+china.shape
+# One way we can view this set of pixels is as a cloud of points in a 3D colour
+# space. We will reshape the data to [n_samples x n_features], and rescale the
+# colours so that they lie between 0 and 1.
+data = china / 255.0 # use 0, ..., 1 scale.
+data = data.reshape(427 * 640, 3)
+data.shape
+# We can visualise these pixels in this color space, using a subset of 10,000 
+# pixels for efficiency.
+def plot_pixels(data, title, colors = None, N = 10000):
+ if colors is None:
+  colors = data
+  
+ # choose a random subset
+ rng = np.random.RandomState(0)
+ i = rng.permutation(data.shape[0])[:N]
+ colors = colors[i]
+ R, G, B = data[i].T
+ 
+ fig, ax = plt.subplots(1, 2, figsize = (16, 6))
+ ax[0].scatter(R, G, color = colors, marker = ".")
+ ax[0].set(xlabel = "Red", ylabel = "Green", xlim = (0, 1), ylim = (0, 1))
+ 
+ ax[1].scatter(R, B, color = colors, marker = ".")
+ ax[1].set(xlabel = "Red", ylabel = "Blue", xlim = (0, 1), ylim = (0, 1))
+ 
+ fig.suptitle(title, size = 20);
+ 
+plot_pixels(data, title = "Input color space: 16 million possible colors")
+plt.show()
+plt.clf()
+# Now let’s reduce these 16 million colors to just 16 colors, using a k-means 
+# clustering across the pixel space. Because we are dealing with a very large 
+# dataset, we will use the mini batch k-means, which operates on subsets of 
+# the data to compute the result much more quickly than the standard k-means 
+# algorithm
+from sklearn.cluster import MiniBatchKMeans
+kMeans = MiniBatchKMeans(16)
+kMeans.fit(data)
+new_colors = kMeans.cluster_centers_[kMeans.predict(data)]
+
+plot_pixels(data, colors = new_colors, 
+            title = "Reduced color space: 16 colors")
+plt.show()
+plt.clf()
+# The result is a recoloring of the original pixels, where each pixel is 
+# assigned the color of its closest cluster center. Plotting these new colors 
+# in the image space rather than the pixel space shows us the effect of this
+china_recolored = new_colors.reshape(china.shape)
+
+fig, ax = plt.subplots(1, 2, figsize = (16, 6), 
+                       subplot_kw = dict(xticks = [], yticks = []))
+
+fig.subplots_adjust(wspace = 0.05)
+ax[0].imshow(china)
+ax[0].set_title("Original Image", size = 16)
+ax[1].imshow(china_recolored)
+ax[1].set_title("16-color Image", size = 16);
+plt.show()
+plt.clf()
+# Some detail is certainly lost in the rightmost panel, but the overall image 
+# is still easily recognizable. This image on the right achieves a compression
+# factor of around 1 million!
+
+### In Depth: Gaussian Mixture Models
