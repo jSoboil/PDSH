@@ -1887,3 +1887,156 @@ plt.clf()
 # factor of around 1 million!
 
 ### In Depth: Gaussian Mixture Models
+# A Gaussian mixture model (GMM) attempts to find a mixture of multidimensional
+# Gaussian probability distributions that best model any input dataset. In the 
+# simplest case, GMMs can be used for finding clusters in the same manner as 
+# k-means.
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+import numpy as np
+
+# Generate data
+from sklearn.datasets import make_blobs
+X, y_true = make_blobs(n_samples = 400, centers = 4, cluster_std = 0.60, 
+                       random_state = 0)
+from sklearn import mixture
+gmm = mixture.GaussianMixture(n_components = 4).fit(X)
+labels = gmm.predict(X)
+plt.scatter(X[:, 0], X[:, 1], c = labels, s = 40, cmap = "viridis")
+plt.show()
+plt.clf()
+
+# But because GMM contains a probabilistic model under the hood, it is also 
+# possible to find probabilistic cluster assignments — in Scikit-Learn we do 
+# this using the pre dict_proba method. This returns a matrix of size 
+# [n_samples, n_clusters] that measures the probability that any point belongs
+# to the given cluster.
+probs = gmm.predict_proba(X)
+print(probs[:5].round(3))
+# We can visualize this uncertainty by, for example, making the size of each 
+# point proportional to the certainty of its prediction.
+size = 50 * probs.max(1) ** 2 # square emphasises differences
+plt.scatter(X[:, 0], X[:, 1], c = labels, cmap = "viridis", s = size);
+plt.show()
+plt.clf()
+
+# Under the hood, a Gaussian mixture model is very similar to k-means - it 
+# uses an expectation–maximization approach that qualitatively does the 
+# following...
+
+# 1. Choose starting guesses for the location and shape
+# 2. Repeat until converged
+#  a. E-step - for each point, find weights encoding the probability of 
+#     membership in each cluster.
+#  b. M-step - for each cluster, update its location, normalization, and shape 
+#     based on all data points, making use of the weights.
+
+# The result of this is that each cluster is associated not with a hard-edged 
+# sphere, but with a smooth Gaussian model. Just as in the k-means 
+# expectation–maximization approach, this algorithm can sometimes miss the 
+# globally optimal solution, and thus in practice multiple random 
+# initializations are used.
+
+# Let’s create a function that will help us visualize the locations and shapes 
+# of the GMM clusters by drawing ellipses based on the gmm output.
+from matplotlib.patches import Ellipse
+def draw_ellipse(position, covariance, ax = None, **kwargs):
+ """Draw an ellipse with a given position and covariance"""
+ ax = ax or plt.gca()
+ 
+ # Convert covariance to principal axes
+ if covariance.shape == (2, 2):
+  U, s, Vt = np.linalg.svd(covariance)
+  angle = np.degrees(np.arctan2(U[1, 0], U[0, 0]))
+  width, height = 2 * np.sqrt(s)
+ else:
+  angle = 0
+  width, height = 2 * np.sqrt(covariance)
+  
+ # Draw an ellipse
+ for nsig in range(1, 4):
+  ax.add_patch(Ellipse(position, nsig * width, nsig * height, 
+                       angle, **kwargs))
+
+def plot_gmm(gmm, X, label = True, ax = None):
+ ax = ax or plt.gca()
+ labels = gmm.fit(X).predict(X)
+ if label:
+  ax.scatter(X[:, 0], X[:, 1], c = labels, s = 40, cmap = "viridis", 
+             zorder = 2)
+ else:
+  ax.scatter(X[:, 0], X[:, 1], s = 40, zorder = 2)
+ ax.axis("equal")
+ 
+ w_factor = 0.2 / gmm.weights_.max()
+ for pos, covar, w in zip(gmm.means_, gmm.covariances_, gmm.weights_):
+  draw_ellipse(pos, covar, alpha = w * w_factor)
+
+# With this in place, we can take a look at what the four-component GMM gives 
+# us for our initial data.
+gmm = mixture.GaussianMixture(n_components = 4, random_state = 42)
+plot_gmm(gmm, X)
+plt.show()
+plt.clf()
+# Similarly, we can use the GMM approach to fit our stretched dataset; 
+# allowing for a full covariance, the model will fit even very oblong, 
+# stretched-out clusters.
+gmm = mixture.GaussianMixture(n_components = 4, covariance_type = "full", 
+                              random_state = 42)
+rng = np.random.RandomState(13)
+X_stretched = np.dot(X, rng.randn(2, 2))
+plot_gmm(gmm, X_stretched)
+plt.show()
+plt.clf()
+
+##### Choosing the covariance type
+# This hyperparameter controls the degrees of freedom in the shape of each 
+# cluster; it is essential to set this carefully for any given problem. The 
+# default is covariance_type = "diag", which means that the size of the 
+# cluster along each dimension can be set independently, with the resulting 
+# ellipse constrained to align with the axes. A slightly simpler and faster 
+# model is covariance_type = "spherical", which constrains the shape of the 
+# cluster such that all dimensions are equal. The resulting clustering will 
+# have similar characteristics to that of k-means, though it is not entirely 
+# equivalent. A more complicated and computationally expensive model 
+# (especially as the number of dimensions grows) is to use covariance_type = 
+# "full", which allows each cluster to be modeled as an ellipse with arbitrary
+# orientation.
+
+#### GMM as Density Estimation
+# Though GMM is often categorized as a clustering algorithm, fundamentally it 
+# is an algorithm for density estimation. That is to say, the result of a GMM
+# fit to some data is technically not a clustering model, but a generative 
+# probabilistic model describing the distribution of the data.
+
+# As an example, consider some data generated from Scikit-Learn’s make_moons 
+# function.
+from sklearn.datasets import make_moons
+X_moon, y_moon = make_moons(200, noise = 0.05, random_state = 0)
+plt.scatter(X_moon[:, 0], X_moon[:, 1]);
+plt.show()
+plt.clf()
+# If we try to fit this to a two-component GMM viewed as a clustering model, 
+# the results are not particularly useful...
+gmm_2 = mixture.GaussianMixture(n_components = 2, covariance_type = "full", 
+                                random_state = 0)
+plot_gmm(gmm_2, X_moon);
+plt.show()
+plt.clf()
+# But if we instead use many more components and ignore the cluster labels, we
+# find a fit that is much closer to the input data.
+gmm_16 = mixture.GaussianMixture(n_components = 16, covariance_type = "full", 
+                                 random_state = 0)
+plot_gmm(gmm = gmm_16, X = X_moon, label = False);
+plt.show()
+plt.clf()
+# Here the mixture of 16 Gaussians serves not to find separated clusters of 
+# data, but rather to model the overall distribution of the input data. This 
+# is a generative model of the distribution, meaning that the GMM gives us the
+# recipe to generate new random data distributed similarly to our input. For 
+# example, here are 400 new points drawn from this 16-component GMM fit to our
+# original data.
+X_new = gmm_16.sample(400)
+plt.scatter(X_new[:, 0], X_new[:, 1]);
+
+##### How many components?
