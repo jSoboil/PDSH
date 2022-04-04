@@ -2040,3 +2040,87 @@ X_new = gmm_16.sample(400)
 plt.scatter(X_new[:, 0], X_new[:, 1]);
 
 ##### How many components?
+# The fact that GMM is a generative model gives us a natural means of 
+# determining the optimal number of components for a given dataset. A 
+# generative model is inherently a probability distribution for the dataset, 
+# and so we can simply evaluate the likelihood of the data under the model, 
+# using cross-validation to avoid overfitting. Another means of correcting for
+# overfitting is to adjust the model likelihoods using some analytic 
+# criterion such as the Akaike information criterion (AIC) or the Bayesian 
+# infor‐ mation criterion (BIC).
+
+# Let’s look at the AIC and BIC as a function as the number of GMM components 
+# for our moon dataset.
+n_components = np.arange(1, 21)
+models = [mixture.GaussianMixture(n, covariance_type = "full", 
+                                  random_state = 0).fit(X_moon)
+          for n in n_components]
+plt.plot(n_components, [m.bic(X_moon) for m in models], label = "BIC")
+plt.plot(n_components, [m.aic(X_moon) for m in models], label = "AIC")
+plt.legend(loc = "best")
+plt.xlabel("n_components");
+plt.show()
+plt.clf()
+# The optimal number of clusters is the value that minimizes the AIC or BIC, 
+# depending on which approximation we wish to use. The AIC tells us that our 
+# choice of 16 components was probably too many - around 8–12 components would
+# have been a better choice. As is typical with this sort of problem, the BIC
+# recommends a simpler model.
+
+# Notice that the choice of number of components measures how well GMM works
+# as a density estimator, not how well it works as a clustering algorithm.
+
+#### Example: GMM for Generating New Data
+# To start with, let’s load the digits data using Scikit-Learn’s data tools.
+from sklearn.datasets import load_digits
+digits = load_digits()
+digits.data.shape
+# Next let’s plot the first 100 of these to recall exactly what we’re looking 
+# at.
+def plot_digits(data):
+ fig, ax = plt.subplots(10, 10, figsize = (8, 8),
+                                subplot_kw = dict(xticks = [], yticks = []))
+ fig.subplots_adjust(hspace = 0.05, wspace = 0.05)
+ for i, axi in enumerate(ax.flat):
+  im = axi.imshow(data[i].reshape(8, 8), cmap = "binary")
+  im.set_clim(0, 16)
+plot_digits(digits.data);
+plt.show()
+plt.clf()
+# We have nearly 1,800 digits in 64 dimensions, and we can build a GMM on top 
+# of these to generate more. GMMs can have difficulty converging in such a 
+# high dimensional space, so we will start with an invertible dimensionality 
+# reduction algorithm on the data. Here we will use a straightforward PCA, 
+# asking it to preserve 99% of the variance in the projected data.
+from sklearn.decomposition import PCA
+pca = PCA(0.99, whiten = True)
+data = pca.fit_transform(digits.data)
+data.shape
+# The result is 41 dimensions, a reduction of nearly 1/3 with almost no 
+# information loss. Given this projected data, let’s use the AIC to get a 
+# gauge for the number of GMM components we should use.
+n_components = np.arange(50, 210, 10)
+models = [mixture.GaussianMixture(n, covariance_type = "full", 
+                                  random_state = 0)
+          for n in n_components]
+aics = [model.fit(data).aic(data) for model in models]
+plt.plot(n_components, aics);
+plt.show()
+plt.clf()
+# It appears that around 110 components minimizes the AIC; we will use this 
+# model. Let’s quickly fit this to the data and confirm that it has converged.
+gmm = mixture.GaussianMixture(110, covariance_type = "full", random_state = 0)
+gmm.fit(data)
+print(gmm.converged_)
+
+### In-Depth: Kernel Density Estimation
+# Kernel density estimation (KDE) is in some senses an algorithm that takes 
+# the mixture-of-Gaussians idea to its logical extreme. It uses a mixture 
+# consisting of one Gaussian component per point, resulting in an essentially
+# nonparametric estimator of density. In this section, we will explore the 
+# motivation and uses of KDE. We begin with the standard imports
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+import numpy as np
+
+#### Motivating KDE - Histograms
