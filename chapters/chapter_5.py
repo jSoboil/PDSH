@@ -2124,3 +2124,67 @@ import seaborn as sns; sns.set()
 import numpy as np
 
 #### Motivating KDE - Histograms
+# A density estimator is an algorithm that seeks to model the sampling 
+# distribution that generated a dataset. For one-dimensional data, you are 
+# probably already familiar with one simple density estimator - the histogram.
+
+# For example, let’s create some data that is drawn from two normal 
+# distributions.
+def make_data(N, f = 0.3, rseed = 1):
+ rand = np.random.RandomState(rseed)
+ x = rand.randn(N)
+ x[int(f * N):] += 5
+ return x
+# generate data
+x = make_data(1000)
+# plot hist
+hist = plt.hist(x, bin s =30, normed=True)
+plt.show()
+plt.clf()
+
+#### Kernel Density Estimation in Practice
+# The free parameters of kernel density estimation are the kernel, which 
+# specifies the shape of the distribution placed at each point, and the 
+# kernel bandwidth, which controls the size of the kernel at each point.
+
+# Let’s first see a simple example of replicating the preceding plot using the
+# Scikit-Learn KernelDensity estimator.
+from sklearn.neighbors import KernelDensity
+
+# instantiate and fit the KDE model
+kde = KernelDensity(bandwidth = 1.0, kernel = "gaussian")
+kde.fit(x[:, None])
+
+# score_samples returns the log of the pdf
+x_d = np.linspace(-4, 8, 1000)
+log_pdf = kde.score_samples(x_d[:, None])
+
+plt.fill_between(x_d, np.exp(log_pdf), alpha = 0.5)
+plt.plot(x, np.full_like(x, -0.01), "|k", markeredgewidth = 1)
+plt.ylim(-0.02, 0.22);
+plt.show()
+plt.clf()
+
+##### Selecting the bandwidth via cross-validation
+# The choice of bandwidth within KDE is extremely important to finding a 
+# suitable density estimate, and is the knob that controls the bias–variance 
+# trade-off in the estimate of density - too narrow a bandwidth leads to a 
+# high-variance estimate (i.e., over‐fitting), where the presence or absence 
+# of a single point makes a large difference. Too wide a bandwidth leads to a 
+# high-bias estimate (i.e., underfitting) where the structure in the data is 
+# washed out by the wide kernel.
+
+# Because we are looking at such a small dataset, we will use leave-one-out 
+# cross-validation, which minimizes the reduction in training set size for 
+# each cross-validation trial.
+from sklearn.model_selection import GridSearchCV, LeaveOneOut
+bandwidths = 10 ** np.linspace(-1, 1, 100)
+grid = GridSearchCV(KernelDensity(kernel = "gaussian"),
+                    {"bandwidth": bandwidths}, 
+                    cv = LeaveOneOut())
+grid.fit(x[:, None]);
+# Now we can find the choice of bandwidth that maximizes the score (which in 
+# this case defaults to the log-likelihood).
+grid.score
+
+# End file
